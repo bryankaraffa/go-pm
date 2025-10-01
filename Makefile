@@ -6,7 +6,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-LDFLAGS := -X github.com/bryankaraffa/go-pm.version=$(VERSION) -X github.com/bryankaraffa/go-pm.gitSHA=$(GIT_SHA)
+LDFLAGS := -X main.version=$(VERSION) -X main.gitSHA=$(GIT_SHA)
 
 # Build the CLI with version info
 build:

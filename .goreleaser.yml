@@ -31,8 +31,8 @@ builds:
         goarch: arm
     ldflags:
       - -s -w
-      - -X github.com/bryankaraffa/go-pm.version={{.Version}}
-      - -X github.com/bryankaraffa/go-pm.gitSHA={{.Commit}}
+      - -X main.version={{.Version}}
+      - -X main.gitSHA={{.Commit}}
 
 archives:
   - formats: [tar.gz]
