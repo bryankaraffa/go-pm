@@ -19,9 +19,13 @@ var rootCmd = &cobra.Command{
 }
 
 var enableGit bool
+var autoDetectRepoRoot bool
+var baseDir string
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&enableGit, "enable-git", false, "Enable git integration")
+	rootCmd.PersistentFlags().BoolVar(&autoDetectRepoRoot, "auto-detect-repo-root", true, "Auto-detect repository root directory")
+	rootCmd.PersistentFlags().StringVar(&baseDir, "base-dir", "", "Base directory for operations")
 }
 
 var newCmd = &cobra.Command{
@@ -44,17 +48,17 @@ var progressCmd = &cobra.Command{
 	Short: "Track work item progress",
 }
 
-var templatesCmd = &cobra.Command{
-	Use:   "templates",
-	Short: "Manage work item templates",
-}
-
 func main() {
-	// Check for --enable-git flag and set env var
-	for _, arg := range os.Args {
+	// Check for flags and set env vars
+	for i, arg := range os.Args {
 		if arg == "--enable-git" {
 			os.Setenv("PM_ENABLE_GIT", "true")
-			break
+		}
+		if arg == "--auto-detect-repo-root=false" {
+			os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
+		}
+		if arg == "--base-dir" && i+1 < len(os.Args) {
+			os.Setenv("PM_BASE_DIR", os.Args[i+1])
 		}
 	}
 
@@ -555,20 +559,10 @@ func main() {
 		},
 	})
 
-	// Templates subcommands
-	templatesCmd.AddCommand(&cobra.Command{
-		Use:   "list",
-		Short: "List available embedded templates",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return helper.ListTemplates(ctx)
-		},
-	})
-
 	rootCmd.AddCommand(newCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(phaseCmd)
 	rootCmd.AddCommand(progressCmd)
-	rootCmd.AddCommand(templatesCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	if err := rootCmd.Execute(); err != nil {

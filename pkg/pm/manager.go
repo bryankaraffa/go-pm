@@ -3,7 +3,6 @@ package pm
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 )
 
 // DefaultManager is the default implementation of the Manager interface.
@@ -599,72 +598,5 @@ func (h *CLIHelper) CompleteTaskAndReport(ctx context.Context, name string, task
 	}
 
 	fmt.Printf("✅ Marked task %d as completed for '%s'\n", taskId, name)
-	return nil
-}
-
-// ScaffoldTemplates creates the template directory and populates it with embedded templates
-func (h *CLIHelper) ScaffoldTemplates(ctx context.Context) error {
-	templatesDir := h.config.TemplatesDir
-
-	// Create directory if it doesn't exist
-	if !h.fs.DirectoryExists(templatesDir) {
-		if err := h.fs.CreateDirectory(templatesDir); err != nil {
-			return fmt.Errorf("failed to create templates directory: %w", err)
-		}
-	}
-
-	// Write embedded templates, checking each file individually
-	templates := map[string]string{
-		"workitem-feature.md":    embeddedTemplateWorkItemFeature,
-		"workitem-bug.md":        embeddedTemplateWorkItemBug,
-		"workitem-experiment.md": embeddedTemplateWorkItemExperiment,
-		"instructions.md":        goInstructions,
-	}
-
-	createdCount := 0
-	skippedCount := 0
-
-	for filename, content := range templates {
-		templatePath := filepath.Join(templatesDir, filename)
-		if h.fs.FileExists(templatePath) {
-			fmt.Printf("⚠️  Skipped %s (already exists)\n", templatePath)
-			skippedCount++
-		} else {
-			if err := h.fs.WriteFile(templatePath, []byte(content)); err != nil {
-				return fmt.Errorf("failed to write template %s: %w", filename, err)
-			}
-			fmt.Printf("✅ Created %s\n", templatePath)
-			createdCount++
-		}
-	}
-
-	fmt.Printf("\nTemplates scaffolded successfully in %s\n", templatesDir)
-	fmt.Printf("Created: %d, Skipped: %d\n", createdCount, skippedCount)
-	if skippedCount > 0 {
-		fmt.Printf("Use --force or remove existing files to overwrite them\n")
-	}
-	fmt.Printf("You can now customize these templates or use --use-external-templates-only flag\n")
-	return nil
-}
-
-// ListTemplates shows available embedded templates
-func (h *CLIHelper) ListTemplates(ctx context.Context) error {
-	fmt.Println("📋 Available Embedded Templates:")
-	fmt.Println()
-
-	// Embedded templates
-	embeddedTemplates := []string{
-		"workitem-feature.md",
-		"workitem-bug.md",
-		"workitem-experiment.md",
-		"instructions.md",
-	}
-	for _, template := range embeddedTemplates {
-		fmt.Printf("  ✅ %s\n", template)
-	}
-
-	fmt.Println()
-	fmt.Println("All templates are embedded and always available.")
-	fmt.Println("Work item types: feature, bug, experiment")
 	return nil
 }

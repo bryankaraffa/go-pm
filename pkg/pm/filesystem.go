@@ -162,7 +162,7 @@ func NewTemplateProcessor(fs FileSystem, config Config) *TemplateProcessor {
 // ProcessTemplate processes an embedded template for a work item.
 // It replaces {{name}} placeholders with the work item name.
 // Templates are always sourced from embedded resources.
-func (tp *TemplateProcessor) ProcessTemplate(templatePath, targetPath, name string, itemType ItemType) error {
+func (tp *TemplateProcessor) ProcessTemplate(targetPath, name string, itemType ItemType) error {
 	// Get embedded template content
 	var embeddedContent string
 	switch itemType {

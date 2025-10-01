@@ -106,10 +106,6 @@ docs/
 │   └── feature-name/
 │       ├── README.md
 │       └── POSTMORTEM.md
-└── templates/         # Work item templates
-    ├── FEATURE.md
-    ├── BUG.md
-    └── EXPERIMENT.md
 ```
 
 ## Error Handling
@@ -170,7 +166,6 @@ err := helper.UpdateStatusAndReport(ctx, "feature-auth", pm.StatusInProgress)
 ## Future Enhancements
 
 - Configuration file support
-- Custom template processing
 - Progress tracking with time estimates
 - Team collaboration features
 - REST API endpoints

@@ -92,7 +92,6 @@ Create a `config.yaml`, `config.json`, or `config.toml` file in the current dire
 ```yaml
 # config.yaml
 docs_dir: "docs"
-templates_dir: "docs/templates"
 backlog_dir: "docs/backlog"
 completed_dir: "docs/completed"
 phase_timeout_days: 7
@@ -105,10 +104,10 @@ Environment variables with the `PM_` prefix override config file values:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PM_DOCS_DIR` | Base docs directory | `"wiki"` |
-| `PM_TEMPLATES_DIR` | Templates directory | `"wiki/work-items/templates"` |
-| `PM_BACKLOG_DIR` | Active work items directory | `"wiki/work-items/backlog"` |
-| `PM_COMPLETED_DIR` | Completed work items directory | `"wiki/work-items/completed"` |
+| `PM_AUTO_DETECT_REPO_ROOT` | Auto-detect repository root | `true` |
+| `PM_BASE_DIR` | Base directory for operations | `"./wiki"` |
+| `PM_BACKLOG_DIR` | Active work items directory | `"work-items/backlog"` |
+| `PM_COMPLETED_DIR` | Completed work items directory | `"work-items/completed"` |
 | `PM_PHASE_TIMEOUT_DAYS` | Days before phase timeout warning | `7` |
 | `PM_AUTO_ASSIGN_AGENT` | Auto-assign agents to execution phase | `true` |
 | `PM_ENABLE_GIT` | Enable git integration | `false` |

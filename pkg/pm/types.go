@@ -5,6 +5,9 @@ package pm
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/viper"
@@ -201,13 +204,13 @@ type PhaseProgress struct {
 
 // Config holds configuration for the PM system
 type Config struct {
-	// DocsDir is the base docs directory (default: "wiki")
-	DocsDir string
-	// TemplatesDir is the templates directory (default: "wiki/work-items/templates")
-	TemplatesDir string
-	// BacklogDir is the active work items directory (default: "wiki/work-items/backlog")
+	// BaseDir is the base directory for all operations (default: auto-detected repo root or ".")
+	BaseDir string
+	// AutoDetectRepoRoot indicates whether to auto-detect the repository root (default: true)
+	AutoDetectRepoRoot bool
+	// BacklogDir is the active work items directory (default: "work-items/backlog")
 	BacklogDir string
-	// CompletedDir is the completed work items directory (default: "wiki/work-items/completed")
+	// CompletedDir is the completed work items directory (default: "work-items/completed")
 	CompletedDir string
 	// PhaseTimeoutDays is the number of days before phase timeout warning (default: 7)
 	PhaseTimeoutDays int
@@ -217,19 +220,41 @@ type Config struct {
 	EnableGit bool
 }
 
+// detectRepoRoot attempts to detect the git repository root directory
+func detectRepoRoot() string {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.Output()
+	if err != nil {
+		// Not a git repo or git not available, use current directory
+		return "."
+	}
+	return string(output[:len(output)-1]) // Remove trailing newline
+}
+
 // DefaultConfig returns the default configuration with file and environment variable support
 func DefaultConfig() Config {
 	// Initialize viper for configuration
 	v := viper.New()
 
-	// Set default values
-	v.SetDefault("docs_dir", "wiki")
-	v.SetDefault("templates_dir", "wiki/work-items/templates")
-	v.SetDefault("backlog_dir", "wiki/work-items/backlog")
-	v.SetDefault("completed_dir", "wiki/work-items/completed")
+	// Determine base directory
+	autoDetect := true
+	if envVal := os.Getenv("PM_AUTO_DETECT_REPO_ROOT"); envVal != "" {
+		autoDetect = envVal == "true"
+	}
+	baseDir := "./wiki"
+	if autoDetect {
+		baseDir = detectRepoRoot()
+	}
+	if envBaseDir := os.Getenv("PM_BASE_DIR"); envBaseDir != "" {
+		baseDir = envBaseDir
+	}
+
+	// Set default values (relative to baseDir)
+	v.SetDefault("auto_detect_repo_root", true)
+	v.SetDefault("backlog_dir", "work-items/backlog")
+	v.SetDefault("completed_dir", "work-items/completed")
 	v.SetDefault("phase_timeout_days", 7)
 	v.SetDefault("auto_assign_agent", true)
-	v.SetDefault("use_external_templates_only", false)
 	v.SetDefault("enable_git", false)
 
 	// Set config file name and paths
@@ -241,8 +266,8 @@ func DefaultConfig() Config {
 	_ = v.ReadInConfig() // This will not error if config file is not found
 
 	// Bind environment variables (these override config file values)
-	_ = v.BindEnv("docs_dir", "PM_DOCS_DIR")
-	_ = v.BindEnv("templates_dir", "PM_TEMPLATES_DIR")
+	_ = v.BindEnv("auto_detect_repo_root", "PM_AUTO_DETECT_REPO_ROOT")
+	_ = v.BindEnv("base_dir", "PM_BASE_DIR")
 	_ = v.BindEnv("backlog_dir", "PM_BACKLOG_DIR")
 	_ = v.BindEnv("completed_dir", "PM_COMPLETED_DIR")
 	_ = v.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
@@ -250,12 +275,12 @@ func DefaultConfig() Config {
 	_ = v.BindEnv("enable_git", "PM_ENABLE_GIT")
 
 	return Config{
-		DocsDir:          v.GetString("docs_dir"),
-		TemplatesDir:     v.GetString("templates_dir"),
-		BacklogDir:       v.GetString("backlog_dir"),
-		CompletedDir:     v.GetString("completed_dir"),
-		PhaseTimeoutDays: v.GetInt("phase_timeout_days"),
-		AutoAssignAgent:  v.GetBool("auto_assign_agent"),
-		EnableGit:        v.GetBool("enable_git"),
+		BaseDir:            baseDir,
+		AutoDetectRepoRoot: v.GetBool("auto_detect_repo_root"),
+		BacklogDir:         filepath.Join(baseDir, v.GetString("backlog_dir")),
+		CompletedDir:       filepath.Join(baseDir, v.GetString("completed_dir")),
+		PhaseTimeoutDays:   v.GetInt("phase_timeout_days"),
+		AutoAssignAgent:    v.GetBool("auto_assign_agent"),
+		EnableGit:          v.GetBool("enable_git"),
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // WorkItemService provides operations for managing work items.
@@ -56,7 +55,6 @@ func (s *WorkItemService) CreateWorkItem(ctx context.Context, req CreateRequest)
 
 	workDir := s.getWorkItemPath(req.Type, req.Name)
 	readmePath := filepath.Join(workDir, "README.md")
-	templatePath := s.getTemplatePath(req.Type)
 
 	// Create directory
 	if err := s.fs.CreateDirectory(workDir); err != nil {
@@ -64,7 +62,7 @@ func (s *WorkItemService) CreateWorkItem(ctx context.Context, req CreateRequest)
 	}
 
 	// Process template
-	if err := s.templater.ProcessTemplate(templatePath, readmePath, req.Name, req.Type); err != nil {
+	if err := s.templater.ProcessTemplate(readmePath, req.Name, req.Type); err != nil {
 		return nil, &WorkItemError{Op: "create", Name: req.Name, Err: fmt.Errorf("failed to process template: %w", err)}
 	}
 
@@ -668,12 +666,6 @@ var embeddedTemplateWorkItemExperiment string
 //go:embed templates/workitem-feature.md
 var embeddedTemplateWorkItemFeature string
 
-// getTemplatePath returns the template path for a work item type
-func (s *WorkItemService) getTemplatePath(itemType ItemType) string {
-	templateName := "workitem-" + strings.ToLower(string(itemType)) + ".md"
-	return filepath.Join(s.config.TemplatesDir, templateName)
-}
-
 // listWorkItemsInDir lists all work items in a directory
 func (s *WorkItemService) listWorkItemsInDir(dir string) ([]WorkItem, error) {
 	dirs, err := s.fs.ListDirectories(dir)
@@ -690,7 +682,7 @@ func (s *WorkItemService) listWorkItemsInDir(dir string) ([]WorkItem, error) {
 		if s.fs.FileExists(readmePath) {
 			item, err := s.parser.ParseWorkItem(name, readmePath)
 			if err != nil {
-				fmt.Printf("Warning: Could not parse %s: %v\n", readmePath, err)
+				// Skip items that can't be parsed
 				continue
 			}
 			items = append(items, item)
