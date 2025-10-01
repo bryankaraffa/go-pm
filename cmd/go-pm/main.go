@@ -52,13 +52,13 @@ func main() {
 	// Check for flags and set env vars
 	for i, arg := range os.Args {
 		if arg == "--enable-git" {
-			os.Setenv("PM_ENABLE_GIT", "true")
+			_ = os.Setenv("PM_ENABLE_GIT", "true")
 		}
 		if arg == "--auto-detect-repo-root=false" {
-			os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
+			_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
 		}
 		if arg == "--base-dir" && i+1 < len(os.Args) {
-			os.Setenv("PM_BASE_DIR", os.Args[i+1])
+			_ = os.Setenv("PM_BASE_DIR", os.Args[i+1])
 		}
 	}
 

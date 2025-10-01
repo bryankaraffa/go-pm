@@ -9,8 +9,8 @@ require (
 )
 
 retract (
-	v0.1.0 // v0.1.0 had incorrect go project folder structure
 	v0.1.1 // Includes only retraction of v0.1.0
+	v0.1.0 // v0.1.0 had incorrect go project folder structure
 )
 
 require (

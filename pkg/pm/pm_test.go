@@ -32,17 +32,17 @@ func TestConfigWithEnvVars(t *testing.T) {
 	origBacklogDir := os.Getenv("PM_BACKLOG_DIR")
 	origEnableGit := os.Getenv("PM_ENABLE_GIT")
 	defer func() {
-		os.Setenv("PM_AUTO_DETECT_REPO_ROOT", origAutoDetect)
-		os.Setenv("PM_BASE_DIR", origBaseDir)
-		os.Setenv("PM_BACKLOG_DIR", origBacklogDir)
-		os.Setenv("PM_ENABLE_GIT", origEnableGit)
+		_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", origAutoDetect)
+		_ = os.Setenv("PM_BASE_DIR", origBaseDir)
+		_ = os.Setenv("PM_BACKLOG_DIR", origBacklogDir)
+		_ = os.Setenv("PM_ENABLE_GIT", origEnableGit)
 	}()
 
 	// Set test env vars
-	os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
-	os.Setenv("PM_BASE_DIR", "/tmp/test")
-	os.Setenv("PM_BACKLOG_DIR", "custom-backlog")
-	os.Setenv("PM_ENABLE_GIT", "true")
+	_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
+	_ = os.Setenv("PM_BASE_DIR", "/tmp/test")
+	_ = os.Setenv("PM_BACKLOG_DIR", "custom-backlog")
+	_ = os.Setenv("PM_ENABLE_GIT", "true")
 
 	config := DefaultConfig()
 	assert.False(t, config.AutoDetectRepoRoot)
@@ -66,8 +66,11 @@ phase_timeout_days: 10
 
 	// Change to temp dir so viper finds the config
 	origWd, _ := os.Getwd()
-	os.Chdir(tempDir)
-	defer os.Chdir(origWd)
+	err = os.Chdir(tempDir)
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(origWd)
+	}()
 
 	config := DefaultConfig()
 	assert.False(t, config.AutoDetectRepoRoot)
@@ -289,6 +292,46 @@ func TestProgressReport(t *testing.T) {
 	assert.Contains(t, report, "Progress Report for test-feature")
 	assert.Contains(t, report, "Overall Progress: 50%")
 	assert.Contains(t, report, "2/4 tasks completed")
+}
+
+func TestPredictCompletionTime(t *testing.T) {
+	fs := NewMockFileSystem()
+	pt := NewProgressTracker(fs)
+
+	// Test with completed work item
+	metrics := WorkItemMetrics{
+		OverallProgress: 100,
+		UpdatedAt:       time.Now(),
+	}
+	completionTime, status := pt.PredictCompletionTime(metrics)
+	assert.Equal(t, metrics.UpdatedAt, completionTime)
+	assert.Equal(t, "Already completed", status)
+
+	// Test with insufficient data
+	metrics = WorkItemMetrics{
+		OverallProgress: 0,
+		TotalTasks:      5,
+		CompletedTasks:  0,
+	}
+	completionTime, status = pt.PredictCompletionTime(metrics)
+	assert.True(t, completionTime.IsZero())
+	assert.Equal(t, "Insufficient data for prediction", status)
+}
+
+func TestGetPhaseEfficiency(t *testing.T) {
+	fs := NewMockFileSystem()
+	pt := NewProgressTracker(fs)
+
+	metrics := WorkItemMetrics{
+		PhaseProgress: []PhaseProgress{
+			{Phase: PhaseDiscovery, TimeSpent: time.Hour},
+			{Phase: PhasePlanning, TimeSpent: 0},
+		},
+	}
+
+	efficiency := pt.GetPhaseEfficiency(metrics)
+	assert.Equal(t, 1.0, efficiency[PhaseDiscovery])
+	assert.Equal(t, 0.0, efficiency[PhasePlanning])
 }
 
 func TestWorkItemParser(t *testing.T) {
@@ -906,7 +949,9 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	// Create a temporary directory structure to simulate a git repo
 	tempDir, err := os.MkdirTemp("", "go-pm-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		_ = os.RemoveAll(tempDir)
+	}()
 
 	// Initialize a git repo in tempDir
 	err = exec.Command("git", "init", tempDir).Run()
@@ -920,7 +965,9 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	// Change to the subdirectory
 	origWd, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(origWd)
+	defer func() {
+		_ = os.Chdir(origWd)
+	}()
 
 	err = os.Chdir(subDir)
 	require.NoError(t, err)
@@ -1050,4 +1097,11 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	items, err = manager.ListWorkItems(ctx, ListFilter{})
 	require.NoError(t, err)
 	assert.Len(t, items, 0) // Should be empty since item was archived
+}
+
+func TestGetInstructions(t *testing.T) {
+	config := DefaultConfig()
+	instructions := GetInstructions(config)
+	assert.NotEmpty(t, instructions)
+	assert.Contains(t, instructions, "Project Management")
 }
