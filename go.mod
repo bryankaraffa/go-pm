@@ -8,7 +8,10 @@ require (
 	github.com/stretchr/testify v1.11.1
 )
 
-retract v0.1.0 // v0.1.0 had incorrect folder structure, retract this version
+retract (
+	v0.1.0 // v0.1.0 had incorrect go project folder structure
+	v0.1.1 // Includes only retraction of v0.1.0
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect

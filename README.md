@@ -111,6 +111,7 @@ Environment variables with the `PM_` prefix override config file values:
 | `PM_COMPLETED_DIR` | Completed work items directory | `"wiki/work-items/completed"` |
 | `PM_PHASE_TIMEOUT_DAYS` | Days before phase timeout warning | `7` |
 | `PM_AUTO_ASSIGN_AGENT` | Auto-assign agents to execution phase | `true` |
+| `PM_ENABLE_GIT` | Enable git integration | `false` |
 
 Example:
 ```bash

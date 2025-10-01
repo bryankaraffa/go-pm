@@ -18,6 +18,12 @@ var rootCmd = &cobra.Command{
 	Long:  "A CLI tool to manage features, bugs, experiments, support questions and project workflow.  Help maintain markdown files for project tracking and documentation-driven development.",
 }
 
+var enableGit bool
+
+func init() {
+	rootCmd.PersistentFlags().BoolVar(&enableGit, "enable-git", false, "Enable git integration")
+}
+
 var newCmd = &cobra.Command{
 	Use:   "new",
 	Short: "Create new work items",
@@ -44,6 +50,14 @@ var templatesCmd = &cobra.Command{
 }
 
 func main() {
+	// Check for --enable-git flag and set env var
+	for _, arg := range os.Args {
+		if arg == "--enable-git" {
+			os.Setenv("PM_ENABLE_GIT", "true")
+			break
+		}
+	}
+
 	ctx := context.Background()
 
 	config := pm.DefaultConfig()

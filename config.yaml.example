@@ -22,3 +22,6 @@ auto_assign_agent: true
 
 # Whether to use only external templates (ignore embedded templates) (default: false)
 use_external_templates_only: false
+
+# Whether to enable git integration (branch creation, etc.) (default: false)
+enable_git: false

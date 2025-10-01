@@ -213,6 +213,8 @@ type Config struct {
 	PhaseTimeoutDays int
 	// AutoAssignAgent indicates whether to auto-assign agents to execution phase (default: true)
 	AutoAssignAgent bool
+	// EnableGit indicates whether to enable git integration (default: false)
+	EnableGit bool
 }
 
 // DefaultConfig returns the default configuration with file and environment variable support
@@ -228,6 +230,7 @@ func DefaultConfig() Config {
 	v.SetDefault("phase_timeout_days", 7)
 	v.SetDefault("auto_assign_agent", true)
 	v.SetDefault("use_external_templates_only", false)
+	v.SetDefault("enable_git", false)
 
 	// Set config file name and paths
 	v.SetConfigName("config") // name of config file (without extension)
@@ -244,6 +247,7 @@ func DefaultConfig() Config {
 	_ = v.BindEnv("completed_dir", "PM_COMPLETED_DIR")
 	_ = v.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
 	_ = v.BindEnv("auto_assign_agent", "PM_AUTO_ASSIGN_AGENT")
+	_ = v.BindEnv("enable_git", "PM_ENABLE_GIT")
 
 	return Config{
 		DocsDir:          v.GetString("docs_dir"),
@@ -252,5 +256,6 @@ func DefaultConfig() Config {
 		CompletedDir:     v.GetString("completed_dir"),
 		PhaseTimeoutDays: v.GetInt("phase_timeout_days"),
 		AutoAssignAgent:  v.GetBool("auto_assign_agent"),
+		EnableGit:        v.GetBool("enable_git"),
 	}
 }

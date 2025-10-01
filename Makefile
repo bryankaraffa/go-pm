@@ -6,7 +6,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-LDFLAGS := -X main.version=$(VERSION) -X main.gitSHA=$(GIT_SHA)
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.gitSHA=$(GIT_SHA)
 
 # Build the CLI with version info
 build:
@@ -14,7 +14,7 @@ build:
 
 # Build for development (always dev version)
 build-dev:
-	go build -ldflags "-X github.com/bryankaraffa/go-pm.version=dev -X github.com/bryankaraffa/go-pm.gitSHA=unknown" -o bin/go-pm ./cmd/go-pm
+	go build -ldflags "-X main.version=dev -X main.gitSHA=unknown" -o bin/go-pm ./cmd/go-pm
 
 # Run tests
 test:

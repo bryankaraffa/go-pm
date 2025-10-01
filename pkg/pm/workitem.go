@@ -69,9 +69,11 @@ func (s *WorkItemService) CreateWorkItem(ctx context.Context, req CreateRequest)
 	}
 
 	// Create git branch
-	if err := s.git.CreateWorkItemBranch(req.Type, req.Name); err != nil {
-		// Log but don't fail
-		fmt.Printf("Warning: Git branch creation failed: %v\n", err)
+	if s.config.EnableGit {
+		if err := s.git.CreateWorkItemBranch(req.Type, req.Name); err != nil {
+			// Log but don't fail
+			fmt.Printf("Warning: Git branch creation failed: %v\n", err)
+		}
 	}
 
 	// Parse the created work item
