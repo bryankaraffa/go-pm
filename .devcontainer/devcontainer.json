@@ -1,0 +1,34 @@
+{
+    "name": "Go PM CLI Dev Container",
+    "image": "mcr.microsoft.com/vscode/devcontainers/go:1",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "ms-vscode.makefile-tools",
+                "redhat.vscode-yaml",
+                "esbenp.prettier-vscode",
+                "ms-vscode.vscode-json"
+            ]
+        }
+    },
+    "mounts": [
+        // Improve Go module performance
+        // Necessary when using wsl2 backend for Docker Desktop on Windows
+        "source=openapi-sync-go-modules,target=/go/pkg,type=volume"
+    ],
+    "features": {
+        // Run GitHub Actions Workflows locally
+        "ghcr.io/devcontainers-extra/features/act:1": {
+            "version": "latest"
+        },
+        // Docker-outside-of-Docker (devcontainers)
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": false,
+            // "installDockerBuildx": true,
+            // "installDockerComposeSwitch": true,
+            // "version": "latest",
+            // "dockerDashComposeVersion": "v2"
+        },
+    }
+}

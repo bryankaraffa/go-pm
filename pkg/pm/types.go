@@ -1,0 +1,256 @@
+// Package pm provides project management functionality for tracking work items
+// in documentation-driven development workflows.
+package pm
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/spf13/viper"
+)
+
+// ItemType represents the type of work item
+type ItemType string
+
+const (
+	TypeFeature    ItemType = "feature"
+	TypeBug        ItemType = "bug"
+	TypeExperiment ItemType = "experiment"
+)
+
+// ItemStatus represents the current status of a work item
+type ItemStatus string
+
+const (
+	StatusProposed            ItemStatus = "PROPOSED"
+	StatusInProgressDiscovery ItemStatus = "IN_PROGRESS_DISCOVERY"
+	StatusInProgressPlanning  ItemStatus = "IN_PROGRESS_PLANNING"
+	StatusInProgressExecution ItemStatus = "IN_PROGRESS_EXECUTION"
+	StatusInProgressCleanup   ItemStatus = "IN_PROGRESS_CLEANUP"
+	StatusInProgressReview    ItemStatus = "IN_PROGRESS_REVIEW"
+	StatusCompleted           ItemStatus = "COMPLETED"
+)
+
+// WorkPhase represents the current phase of work
+type WorkPhase string
+
+const (
+	PhaseDiscovery WorkPhase = "discovery"
+	PhasePlanning  WorkPhase = "planning"
+	PhaseExecution WorkPhase = "execution"
+	PhaseCleanup   WorkPhase = "cleanup"
+)
+
+// Task represents a phase-specific task
+type Task struct {
+	Description string
+	Completed   bool
+	Phase       WorkPhase
+	AssignedTo  string // "human" or "agent"
+}
+
+// WorkItem represents a project management work item with its metadata
+type WorkItem struct {
+	// Name is the directory name (e.g., "feature-auth")
+	Name string
+	// Title is the human-readable title extracted from the README
+	Title string
+	// Type is the work item type (feature, bug, experiment)
+	Type ItemType
+	// Status is the current workflow status
+	Status ItemStatus
+	// Phase is the current work phase
+	Phase WorkPhase
+	// Progress is the completion percentage (0-100)
+	Progress int
+	// AssignedTo is the current assignee ("human", "agent", or specific agent ID)
+	AssignedTo string
+	// Path is the full path to the work item directory
+	Path string
+	// CreatedAt is when the work item was created
+	CreatedAt time.Time
+	// UpdatedAt is when the work item was last updated
+	UpdatedAt time.Time
+	// Tasks are the phase-specific task checklists
+	Tasks []Task
+}
+
+// CreateRequest contains the parameters for creating a new work item
+type CreateRequest struct {
+	// Type is the work item type to create
+	Type ItemType
+	// Name is the work item name (without type prefix)
+	Name string
+}
+
+// ListFilter contains filtering options for listing work items
+type ListFilter struct {
+	// Status filters by work item status (empty means all statuses)
+	Status ItemStatus
+	// Type filters by work item type (empty means all types)
+	Type ItemType
+}
+
+// Manager defines the interface for project management operations
+type Manager interface {
+	// CreateWorkItem creates a new work item with the given parameters
+	CreateWorkItem(ctx context.Context, req CreateRequest) (*WorkItem, error)
+
+	// ListWorkItems returns work items matching the filter criteria
+	ListWorkItems(ctx context.Context, filter ListFilter) ([]WorkItem, error)
+
+	// GetWorkItem retrieves a specific work item by name
+	GetWorkItem(ctx context.Context, name string) (*WorkItem, error)
+
+	// UpdateStatus updates the status of a work item
+	UpdateStatus(ctx context.Context, name string, status ItemStatus) error
+
+	// UpdateProgress updates the progress of a work item
+	UpdateProgress(ctx context.Context, name string, progress int) error
+
+	// AssignWorkItem assigns a work item to an assignee
+	AssignWorkItem(ctx context.Context, name, assignee string) error
+
+	// AdvancePhase advances a work item to the next phase
+	AdvancePhase(ctx context.Context, name string) error
+
+	// SetPhase sets the phase of a work item (admin override)
+	SetPhase(ctx context.Context, name string, phase WorkPhase) error
+
+	// GetPhaseTasks returns tasks for the current phase of a work item
+	GetPhaseTasks(ctx context.Context, name string) ([]Task, error)
+
+	// CompleteTask marks a task as completed
+	CompleteTask(ctx context.Context, name string, taskId int) error
+
+	// GetProgressMetrics returns progress metrics for a work item
+	GetProgressMetrics(ctx context.Context, name string) (*WorkItemMetrics, error)
+
+	// ArchiveWorkItem moves a completed work item to the completed directory
+	ArchiveWorkItem(ctx context.Context, name string) error
+}
+
+// WorkItemError represents an error that occurred during a work item operation
+type WorkItemError struct {
+	// Op is the operation that failed (create, update, etc.)
+	Op string
+	// Name is the work item name
+	Name string
+	// Err is the underlying error
+	Err error
+}
+
+func (e *WorkItemError) Error() string {
+	return fmt.Sprintf("go-pm %s %s: %v", e.Op, e.Name, e.Err)
+}
+
+func (e *WorkItemError) Unwrap() error {
+	return e.Err
+}
+
+// ValidationError represents a validation error for work item data
+type ValidationError struct {
+	// Field is the field that failed validation
+	Field string
+	// Value is the invalid value
+	Value string
+	// Message describes the validation error
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("validation error for %s '%s': %s", e.Field, e.Value, e.Message)
+}
+
+// PhaseError represents a phase transition error
+type PhaseError struct {
+	WorkItem     string
+	CurrentPhase WorkPhase
+	TargetPhase  WorkPhase
+	Reason       string
+}
+
+func (e *PhaseError) Error() string {
+	return fmt.Sprintf("cannot advance %s from %s to %s: %s", e.WorkItem, e.CurrentPhase, e.TargetPhase, e.Reason)
+}
+
+// WorkItemMetrics represents comprehensive metrics for a work item.
+// It includes task completion statistics, phase progress, and timing information
+// used for progress tracking and reporting.
+type WorkItemMetrics struct {
+	Name            string          // Work item name
+	TotalTasks      int             // Total number of tasks across all phases
+	CompletedTasks  int             // Number of completed tasks
+	OverallProgress int             // Overall progress percentage (0-100)
+	PhaseProgress   []PhaseProgress // Progress metrics for each phase
+	TotalTimeSpent  time.Duration   // Total time spent on the work item
+	CreatedAt       time.Time       // When the work item was created
+	UpdatedAt       time.Time       // When the work item was last updated
+}
+
+// PhaseProgress represents progress metrics for a specific phase.
+// It tracks task completion and time spent within a particular work phase.
+type PhaseProgress struct {
+	Phase           WorkPhase     // The work phase these metrics apply to
+	TotalTasks      int           // Total tasks in this phase
+	CompletedTasks  int           // Completed tasks in this phase
+	ProgressPercent int           // Progress percentage for this phase (0-100)
+	TimeSpent       time.Duration // Time spent working on this phase
+}
+
+// Config holds configuration for the PM system
+type Config struct {
+	// DocsDir is the base docs directory (default: "wiki")
+	DocsDir string
+	// TemplatesDir is the templates directory (default: "wiki/work-items/templates")
+	TemplatesDir string
+	// BacklogDir is the active work items directory (default: "wiki/work-items/backlog")
+	BacklogDir string
+	// CompletedDir is the completed work items directory (default: "wiki/work-items/completed")
+	CompletedDir string
+	// PhaseTimeoutDays is the number of days before phase timeout warning (default: 7)
+	PhaseTimeoutDays int
+	// AutoAssignAgent indicates whether to auto-assign agents to execution phase (default: true)
+	AutoAssignAgent bool
+}
+
+// DefaultConfig returns the default configuration with file and environment variable support
+func DefaultConfig() Config {
+	// Initialize viper for configuration
+	v := viper.New()
+
+	// Set default values
+	v.SetDefault("docs_dir", "wiki")
+	v.SetDefault("templates_dir", "wiki/work-items/templates")
+	v.SetDefault("backlog_dir", "wiki/work-items/backlog")
+	v.SetDefault("completed_dir", "wiki/work-items/completed")
+	v.SetDefault("phase_timeout_days", 7)
+	v.SetDefault("auto_assign_agent", true)
+	v.SetDefault("use_external_templates_only", false)
+
+	// Set config file name and paths
+	v.SetConfigName("config") // name of config file (without extension)
+	v.AddConfigPath(".")      // look for config in the working directory
+	v.AddConfigPath("$HOME")  // look for config in home directory
+
+	// Read config file (ignore error if file doesn't exist)
+	_ = v.ReadInConfig() // This will not error if config file is not found
+
+	// Bind environment variables (these override config file values)
+	_ = v.BindEnv("docs_dir", "PM_DOCS_DIR")
+	_ = v.BindEnv("templates_dir", "PM_TEMPLATES_DIR")
+	_ = v.BindEnv("backlog_dir", "PM_BACKLOG_DIR")
+	_ = v.BindEnv("completed_dir", "PM_COMPLETED_DIR")
+	_ = v.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
+	_ = v.BindEnv("auto_assign_agent", "PM_AUTO_ASSIGN_AGENT")
+
+	return Config{
+		DocsDir:          v.GetString("docs_dir"),
+		TemplatesDir:     v.GetString("templates_dir"),
+		BacklogDir:       v.GetString("backlog_dir"),
+		CompletedDir:     v.GetString("completed_dir"),
+		PhaseTimeoutDays: v.GetInt("phase_timeout_days"),
+		AutoAssignAgent:  v.GetBool("auto_assign_agent"),
+	}
+}
