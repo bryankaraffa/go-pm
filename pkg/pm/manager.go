@@ -244,8 +244,12 @@ func (m *DefaultManager) CompleteTask(ctx context.Context, name string, taskId i
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	fmt.Printf("Progress: %d%%, Phase: %s, Status: %s\n",
-//		metrics.Progress, metrics.Phase, metrics.Status)
+//	// The returned WorkItemMetrics contains fields such as OverallProgress,
+//	// TotalTasks, CompletedTasks and PhaseProgress. Use those fields to
+//	// construct a user-facing report. For example:
+//	fmt.Printf("Progress: %d%% (%d/%d tasks completed)\n", metrics.OverallProgress, metrics.CompletedTasks, metrics.TotalTasks)
+//	for _, pp := range metrics.PhaseProgress {
+//		fmt.Printf("  %s: %d%% (%d/%d tasks)\n", pp.Phase, pp.ProgressPercent, pp.CompletedTasks, pp.TotalTasks)
 func (m *DefaultManager) GetProgressMetrics(ctx context.Context, name string) (*WorkItemMetrics, error) {
 	return m.service.GetProgressMetrics(ctx, name)
 }

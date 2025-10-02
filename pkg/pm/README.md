@@ -24,8 +24,14 @@ type Manager interface {
     ListWorkItems(ctx context.Context, filter ListFilter) ([]WorkItem, error)
     GetWorkItem(ctx context.Context, name string) (*WorkItem, error)
     UpdateStatus(ctx context.Context, name string, status ItemStatus) error
+    UpdateProgress(ctx context.Context, name string, progress int) error
+    AssignWorkItem(ctx context.Context, name, assignee string) error
+    AdvancePhase(ctx context.Context, name string) error
+    SetPhase(ctx context.Context, name string, phase WorkPhase) error
+    GetPhaseTasks(ctx context.Context, name string) ([]Task, error)
+    CompleteTask(ctx context.Context, name string, taskId int) error
+    GetProgressMetrics(ctx context.Context, name string) (*WorkItemMetrics, error)
     ArchiveWorkItem(ctx context.Context, name string) error
-    ...
 }
 ```
 
@@ -91,22 +97,38 @@ manager := pm.NewDefaultManagerWithDeps(config, fs, gitClient)
 
 ## Work Item Lifecycle
 
+Work items follow a structured phased development process:
+
 1. **PROPOSED**: Initial state, documentation created
-2. **IN_PROGRESS**: Implementation started
-3. **COMPLETED**: Implementation finished, ready for archive
+2. **IN_PROGRESS_DISCOVERY** (Discovery Phase): Understanding requirements and constraints
+3. **IN_PROGRESS_PLANNING** (Planning Phase): Technical design and implementation planning
+4. **IN_PROGRESS_EXECUTION** (Execution Phase): Implementation and testing
+5. **IN_PROGRESS_CLEANUP** (Cleanup Phase): Final testing and documentation
+6. **IN_PROGRESS_REVIEW** (Cleanup Phase): Final review before completion
+7. **COMPLETED**: Implementation finished, ready for archive
+
+### Phases
+
+- **Discovery**: Analyze requirements, stakeholders, and constraints
+- **Planning**: Create technical design, API contracts, and implementation plan
+- **Execution**: Implement functionality, write tests, update documentation
+- **Cleanup**: Final testing, documentation completion, review, and postmortem
+
+Each phase includes specific tasks that must be completed before advancing to the next phase. The cleanup phase has two advancement steps: first to review status, then to completed status.
 
 ## Directory Structure
 
 ```
-docs/
-├── backlog/           # Active work items
-│   └── feature-name/
-│       └── README.md
-├── completed/         # Archived work items
-│   └── feature-name/
-│       ├── README.md
-│       └── POSTMORTEM.md
+{backlog_dir}/
+├── feature-name/      # Active work items
+│   └── README.md
+{completed_dir}/
+├── feature-name/      # Archived work items
+│   ├── README.md
+│   └── POSTMORTEM.md
 ```
+
+The `backlog_dir` and `completed_dir` are configurable via the `Config` struct (defaults: "work-items/backlog" and "work-items/completed").
 
 ## Error Handling
 
@@ -165,7 +187,5 @@ err := helper.UpdateStatusAndReport(ctx, "feature-auth", pm.StatusInProgress)
 
 ## Future Enhancements
 
-- Configuration file support
-- Progress tracking with time estimates
-- Team collaboration features
-- REST API endpoints
+- Plugin system for custom work item types
+- Enhanced reporting and analytics

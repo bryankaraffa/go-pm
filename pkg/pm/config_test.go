@@ -16,38 +16,52 @@ func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
 	assert.True(t, config.AutoDetectRepoRoot)
 	assert.Equal(t, 7, config.PhaseTimeoutDays)
-	assert.True(t, config.AutoAssignAgent)
 	assert.False(t, config.EnableGit)
-	// BaseDir should be detected repo root or ./wiki
-	assert.NotEmpty(t, config.BaseDir)
-	assert.Contains(t, config.BacklogDir, "work-items/backlog")
-	assert.Contains(t, config.CompletedDir, "work-items/completed")
+	// BacklogDir and CompletedDir should be absolute paths
+	assert.NotEmpty(t, config.BacklogDir)
+	assert.NotEmpty(t, config.CompletedDir)
+	assert.True(t, filepath.IsAbs(config.BacklogDir))
+	assert.True(t, filepath.IsAbs(config.CompletedDir))
 }
 
 func TestConfigWithEnvVars(t *testing.T) {
 	// Save original env vars
 	origAutoDetect := os.Getenv("PM_AUTO_DETECT_REPO_ROOT")
-	origBaseDir := os.Getenv("PM_BASE_DIR")
 	origBacklogDir := os.Getenv("PM_BACKLOG_DIR")
 	origEnableGit := os.Getenv("PM_ENABLE_GIT")
 	defer func() {
 		_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", origAutoDetect)
-		_ = os.Setenv("PM_BASE_DIR", origBaseDir)
 		_ = os.Setenv("PM_BACKLOG_DIR", origBacklogDir)
 		_ = os.Setenv("PM_ENABLE_GIT", origEnableGit)
 	}()
 
 	// Set test env vars
 	_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
-	_ = os.Setenv("PM_BASE_DIR", "/tmp/test")
 	_ = os.Setenv("PM_BACKLOG_DIR", "custom-backlog")
 	_ = os.Setenv("PM_ENABLE_GIT", "true")
 
 	config := DefaultConfig()
 	assert.False(t, config.AutoDetectRepoRoot)
-	assert.Equal(t, "/tmp/test", config.BaseDir)
-	assert.Equal(t, "/tmp/test/custom-backlog", config.BacklogDir)
+	assert.Equal(t, "custom-backlog", config.BacklogDir)
 	assert.True(t, config.EnableGit)
+}
+
+func TestConfigWithAbsolutePathEnvVars(t *testing.T) {
+	// Save original env vars
+	origBacklogDir := os.Getenv("PM_BACKLOG_DIR")
+	origCompletedDir := os.Getenv("PM_COMPLETED_DIR")
+	defer func() {
+		_ = os.Setenv("PM_BACKLOG_DIR", origBacklogDir)
+		_ = os.Setenv("PM_COMPLETED_DIR", origCompletedDir)
+	}()
+
+	// Set test env vars with absolute paths (should be used as-is)
+	_ = os.Setenv("PM_BACKLOG_DIR", "/tmp/test/absolute/backlog")
+	_ = os.Setenv("PM_COMPLETED_DIR", "/tmp/test/absolute/completed")
+
+	config := DefaultConfig()
+	assert.Equal(t, "/tmp/test/absolute/backlog", config.BacklogDir)
+	assert.Equal(t, "/tmp/test/absolute/completed", config.CompletedDir)
 }
 
 func TestConfigWithFile(t *testing.T) {
@@ -123,8 +137,11 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 
 	// Now test that DefaultConfig detects the repo root correctly
 	config := DefaultConfig()
-	// The baseDir should be the tempDir (repo root), not the subDir
-	assert.Equal(t, tempDir, config.BaseDir)
+	// The backlog and completed dirs should be absolute paths under the detected repo root
+	expectedBacklogDir := filepath.Join(tempDir, "work-items", "backlog")
+	expectedCompletedDir := filepath.Join(tempDir, "work-items", "completed")
+	assert.Equal(t, expectedBacklogDir, config.BacklogDir)
+	assert.Equal(t, expectedCompletedDir, config.CompletedDir)
 
 	// Create manager and test full lifecycle
 	manager := NewDefaultManager(config)

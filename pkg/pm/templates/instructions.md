@@ -1,6 +1,10 @@
+---
+applyTo: '**'
+---
+
 # Guidelines for Project Contributors and Maintainers
 
-All development work must be tracked through the Project Management tool ([go-pm](https://github.com/bryankaraffa/go-pm)) to ensure:
+All development work must be tracked through the Project Management CLI tool ([go-pm](https://github.com/bryankaraffa/go-pm)) to ensure:
 
 - Clear project visibility and progress tracking
 - Proper documentation and knowledge sharing
@@ -44,15 +48,27 @@ Before starting any work:
    Example: `go-pm new feature user-authentication`
 
 3. The tool will automatically:
-   - Create a directory structure under `wiki/work-items/backlog/`
+   - Create a directory structure under `{{backlog_dir}}/`
    - Generate a README.md template with phase-specific sections
    - Set initial status to PROPOSED
    - Assign to you (the agent) by default
 
-4. **IMMEDIATELY** after creation, advance to the first phase:
-   ```bash
-   go-pm phase advance <name>
-   ```
+4. **IMMEDIATELY** after creation, proceed to the **Discovery** phase by following this prompt:
+   <prompt>
+        Work with the user to build out a full description of the newly created feature.
+        Ask questions to understand:
+          • What the feature/bug/experiment should do
+          • Who will use it
+          • Technical requirements
+          • Dependencies and integrations
+          • Success criteria
+
+        IMPORTANT: You are in a planning phase. Do NOT recommend creating new project code at this stage.
+        Success looks like getting a really great README.md document at the 
+        
+        When you're done, update the feature file and ask the user to clarify their goals for the feature.
+        Update the work item file as you gather more information.
+   </prompt>
 
 ## Phase Workflow
 
@@ -110,11 +126,15 @@ Work items progress through four mandatory phases:
 - Documentation completion
 - Postmortem analysis
 - Knowledge sharing
+- Final review
 - Archive the work item
 
 **Commands:**
+- `go-pm phase complete <name> <task-id>` - Mark cleanup tasks as completed
 - `go-pm progress update <name> <percentage>` - Update progress (91-100%)
-- `go-pm archive <name>` - Archive when fully complete
+- `go-pm phase advance <name>` - Move to review status when cleanup tasks are done
+- `go-pm phase advance <name>` - Mark as completed when review is finished
+- `go-pm archive <name>` - Archive when in completed status
 
 ## Progress Tracking
 

@@ -295,8 +295,9 @@ func (s *WorkItemService) GetPhaseTasks(ctx context.Context, name string) ([]Tas
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	fmt.Printf("Progress: %d%% (%d/%d tasks completed)\n",
-//		metrics.ProgressPercent, metrics.TasksCompleted, metrics.TasksTotal)
+//	// The returned WorkItemMetrics contains OverallProgress, TotalTasks and
+//	// CompletedTasks fields. Use them to display a concise progress summary:
+//	fmt.Printf("Progress: %d%% (%d/%d tasks completed)\n", metrics.OverallProgress, metrics.CompletedTasks, metrics.TotalTasks)
 func (s *WorkItemService) GetProgressMetrics(ctx context.Context, name string) (*WorkItemMetrics, error) {
 	readmePath := filepath.Join(s.config.BacklogDir, name, "README.md")
 	if !s.fs.FileExists(readmePath) {
@@ -497,30 +498,6 @@ func (s *WorkItemService) AdvancePhase(ctx context.Context, name string) error {
 	// Update phase and status in file
 	if err := s.updater.UpdatePhaseAndStatus(readmePath, nextPhase, nextStatus); err != nil {
 		return &WorkItemError{Op: "advance_phase", Name: name, Err: fmt.Errorf("failed to update phase: %w", err)}
-	}
-
-	// Auto-assign agent if advancing to execution phase and auto-assign is enabled
-	if nextPhase == PhaseExecution && s.config.AutoAssignAgent {
-		// Check current assignee
-		currentItem, err := s.parser.ParseWorkItem(name, readmePath)
-		if err != nil {
-			// Log warning but don't fail phase advancement
-			fmt.Printf("Warning: Could not parse work item for auto-assignment check: %v\n", err)
-		} else if currentItem.AssignedTo == "" || currentItem.AssignedTo == "human" {
-			// Only auto-assign if not assigned or assigned to human
-			gitUser, err := s.git.client.GetGitUserName()
-			if err != nil {
-				// Log warning but don't fail phase advancement
-				fmt.Printf("Warning: Could not get git user name for auto-assignment: %v\n", err)
-			} else if gitUser != "" {
-				if err := s.updater.UpdateAssignee(readmePath, gitUser); err != nil {
-					// Log warning but don't fail phase advancement
-					fmt.Printf("Warning: Could not auto-assign work item to %s: %v\n", gitUser, err)
-				} else {
-					fmt.Printf("Auto-assigned work item to %s\n", gitUser)
-				}
-			}
-		}
 	}
 
 	// Create git branch for new phase if needed

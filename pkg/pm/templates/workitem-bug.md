@@ -106,7 +106,7 @@ What was learned from this bug fix.
 - [ ] Final validation testing
 - [ ] Update documentation
 - [ ] Knowledge sharing
-- [ ] Archive work item
+- [ ] Prepare for review
 
 ### Notes
 Lessons learned and prevention measures.

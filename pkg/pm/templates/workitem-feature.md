@@ -97,7 +97,7 @@ What went well, what could be improved.
 - [ ] Final testing and validation
 - [ ] Documentation completion
 - [ ] Knowledge sharing
-- [ ] Archive work item
+- [ ] Prepare for review
 
 ### Notes
 Final observations and recommendations.

@@ -15,7 +15,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "go-pm",
 	Short: "Project management CLI tool written in Go",
-	Long:  "A CLI tool to manage features, bugs, experiments, support questions and project workflow.  Help maintain markdown files for project tracking and documentation-driven development.",
+	Long:  "A CLI tool to manage features, bugs, experiments and project workflow.  Help maintain markdown files for project tracking and documentation-driven development.",
 }
 
 var enableGit bool
@@ -25,7 +25,6 @@ var baseDir string
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&enableGit, "enable-git", false, "Enable git integration")
 	rootCmd.PersistentFlags().BoolVar(&autoDetectRepoRoot, "auto-detect-repo-root", true, "Auto-detect repository root directory")
-	rootCmd.PersistentFlags().StringVar(&baseDir, "base-dir", "", "Base directory for operations")
 }
 
 var newCmd = &cobra.Command{
@@ -49,15 +48,13 @@ var progressCmd = &cobra.Command{
 }
 
 // createWorkItemCommand creates a cobra command for creating work items of a specific type
-func createWorkItemCommand(itemType pm.ItemType, description string) *cobra.Command {
+func createWorkItemCommand(manager *pm.DefaultManager, itemType pm.ItemType, description string) *cobra.Command {
 	return &cobra.Command{
 		Use:   fmt.Sprintf("%s [name]", strings.ToLower(string(itemType))),
 		Short: fmt.Sprintf("Create new %s", description),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			config := pm.DefaultConfig()
-			manager := pm.NewDefaultManager(config)
 
 			req := pm.CreateRequest{
 				Type: itemType,
@@ -87,15 +84,12 @@ func createWorkItemCommand(itemType pm.ItemType, description string) *cobra.Comm
 
 func main() {
 	// Check for flags and set env vars
-	for i, arg := range os.Args {
+	for _, arg := range os.Args {
 		if arg == "--enable-git" {
 			_ = os.Setenv("PM_ENABLE_GIT", "true")
 		}
 		if arg == "--auto-detect-repo-root=false" {
 			_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
-		}
-		if arg == "--base-dir" && i+1 < len(os.Args) {
-			_ = os.Setenv("PM_BASE_DIR", os.Args[i+1])
 		}
 	}
 
@@ -103,9 +97,9 @@ func main() {
 
 	config := pm.DefaultConfig()
 	manager := pm.NewDefaultManager(config)
-	newCmd.AddCommand(createWorkItemCommand(pm.TypeFeature, "feature"))
-	newCmd.AddCommand(createWorkItemCommand(pm.TypeBug, "bug report"))
-	newCmd.AddCommand(createWorkItemCommand(pm.TypeExperiment, "experiment"))
+	newCmd.AddCommand(createWorkItemCommand(manager, pm.TypeFeature, "feature"))
+	newCmd.AddCommand(createWorkItemCommand(manager, pm.TypeBug, "bug report"))
+	newCmd.AddCommand(createWorkItemCommand(manager, pm.TypeExperiment, "experiment"))
 	listCmd.AddCommand(&cobra.Command{
 		Use:   "proposed",
 		Short: "List proposed work items",
@@ -277,7 +271,7 @@ func main() {
 				return fmt.Errorf("failed to archive work item: %w", err)
 			}
 
-			fmt.Printf("✅ Archived '%s' to docs/completed/\n", args[0])
+			fmt.Printf("✅ Archived '%s' to %s/\n", args[0], config.CompletedDir)
 			fmt.Printf("📝 Consider filling out the postmortem\n")
 
 			return nil

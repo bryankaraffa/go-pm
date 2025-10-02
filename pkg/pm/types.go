@@ -24,20 +24,16 @@ func initializeViper() {
 
 	// Set default values
 	configViper.SetDefault("auto_detect_repo_root", true)
-	configViper.SetDefault("base_dir", "") // Will be computed
 	configViper.SetDefault("backlog_dir", "work-items/backlog")
 	configViper.SetDefault("completed_dir", "work-items/completed")
 	configViper.SetDefault("phase_timeout_days", 7)
-	configViper.SetDefault("auto_assign_agent", true)
 	configViper.SetDefault("enable_git", false)
 
 	// Bind environment variables (these override config file values)
 	_ = configViper.BindEnv("auto_detect_repo_root", "PM_AUTO_DETECT_REPO_ROOT")
-	_ = configViper.BindEnv("base_dir", "PM_BASE_DIR")
 	_ = configViper.BindEnv("backlog_dir", "PM_BACKLOG_DIR")
 	_ = configViper.BindEnv("completed_dir", "PM_COMPLETED_DIR")
 	_ = configViper.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
-	_ = configViper.BindEnv("auto_assign_agent", "PM_AUTO_ASSIGN_AGENT")
 	_ = configViper.BindEnv("enable_git", "PM_ENABLE_GIT")
 
 	// Read config file (ignore error if file doesn't exist)
@@ -248,8 +244,6 @@ type PhaseProgress struct {
 
 // Config holds configuration for the PM system
 type Config struct {
-	// BaseDir is the base directory for all operations (default: auto-detected repo root or ".")
-	BaseDir string
 	// AutoDetectRepoRoot indicates whether to auto-detect the repository root (default: true)
 	AutoDetectRepoRoot bool
 	// BacklogDir is the active work items directory (default: "work-items/backlog")
@@ -258,8 +252,6 @@ type Config struct {
 	CompletedDir string
 	// PhaseTimeoutDays is the number of days before phase timeout warning (default: 7)
 	PhaseTimeoutDays int
-	// AutoAssignAgent indicates whether to auto-assign agents to execution phase (default: true)
-	AutoAssignAgent bool
 	// EnableGit indicates whether to enable git integration (default: false)
 	EnableGit bool
 }
@@ -277,25 +269,36 @@ func detectRepoRoot() string {
 
 // DefaultConfig returns the default configuration with file and environment variable support
 func DefaultConfig() Config {
-	// Determine base directory with proper precedence
-	baseDir := configViper.GetString("base_dir")
-	if baseDir == "" {
-		// Not set in config or env, use auto-detection logic
-		autoDetect := configViper.GetBool("auto_detect_repo_root")
-		if autoDetect {
-			baseDir = detectRepoRoot()
-		} else {
-			baseDir = "./wiki"
+	autoDetect := configViper.GetBool("auto_detect_repo_root")
+
+	// Ensure backlog and completed dirs are absolute paths
+	backlogDir := configViper.GetString("backlog_dir")
+	completedDir := configViper.GetString("completed_dir")
+
+	if autoDetect {
+		// When auto-detecting, use repo root as base
+		baseDir := detectRepoRoot()
+		if !filepath.IsAbs(backlogDir) {
+			backlogDir = filepath.Join(baseDir, backlogDir)
+		}
+		if !filepath.IsAbs(completedDir) {
+			completedDir = filepath.Join(baseDir, completedDir)
+		}
+	} else {
+		// When not auto-detecting, treat relative paths as relative to current directory
+		if !filepath.IsAbs(backlogDir) {
+			backlogDir = filepath.Join(".", backlogDir)
+		}
+		if !filepath.IsAbs(completedDir) {
+			completedDir = filepath.Join(".", completedDir)
 		}
 	}
 
 	return Config{
-		BaseDir:            baseDir,
-		AutoDetectRepoRoot: configViper.GetBool("auto_detect_repo_root"),
-		BacklogDir:         filepath.Join(baseDir, configViper.GetString("backlog_dir")),
-		CompletedDir:       filepath.Join(baseDir, configViper.GetString("completed_dir")),
+		AutoDetectRepoRoot: autoDetect,
+		BacklogDir:         backlogDir,
+		CompletedDir:       completedDir,
 		PhaseTimeoutDays:   configViper.GetInt("phase_timeout_days"),
-		AutoAssignAgent:    configViper.GetBool("auto_assign_agent"),
 		EnableGit:          configViper.GetBool("enable_git"),
 	}
 }

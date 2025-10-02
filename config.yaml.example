@@ -5,20 +5,20 @@
 # Whether to auto-detect the repository root directory (default: true)
 auto_detect_repo_root: true
 
-# Base directory for all operations (auto-detected if auto_detect_repo_root is true)
-# base_dir: "./wiki"
-
 # Directory for active work items (default: "work-items/backlog")
+# When auto_detect_repo_root is true, this is relative to <repo-root>
+# When auto_detect_repo_root is false, this is relative to the current directory
+# Can also be an absolute path
 backlog_dir: "work-items/backlog"
 
 # Directory for completed/archived work items (default: "work-items/completed")
+# When auto_detect_repo_root is true, this is relative to <repo-root>
+# When auto_detect_repo_root is false, this is relative to the current directory
+# Can also be an absolute path
 completed_dir: "work-items/completed"
 
 # Number of days before showing phase timeout warnings (default: 7)
 phase_timeout_days: 7
-
-# Whether to automatically assign agents to execution phase (default: true)
-auto_assign_agent: true
 
 # Whether to enable git integration (branch creation, etc.) (default: false)
 enable_git: false
