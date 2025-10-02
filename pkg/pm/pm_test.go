@@ -72,6 +72,9 @@ phase_timeout_days: 10
 		_ = os.Chdir(origWd)
 	}()
 
+	// Reload config to pick up the new config file
+	reloadConfigForTesting()
+
 	config := DefaultConfig()
 	assert.False(t, config.AutoDetectRepoRoot)
 	assert.Contains(t, config.BacklogDir, "custom-backlog")
@@ -971,6 +974,9 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 
 	err = os.Chdir(subDir)
 	require.NoError(t, err)
+
+	// Reload config to pick up the new working directory context
+	reloadConfigForTesting()
 
 	// Now test that DefaultConfig detects the repo root correctly
 	config := DefaultConfig()

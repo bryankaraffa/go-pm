@@ -5,13 +5,57 @@ package pm
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
 	"github.com/spf13/viper"
 )
+
+// Global viper instance for configuration
+var configViper *viper.Viper
+
+// initializeViper sets up viper configuration
+func initializeViper() {
+	// Set config file name and paths
+	configViper.SetConfigName("config") // name of config file (without extension)
+	configViper.AddConfigPath(".")      // look for config in the working directory
+	configViper.AddConfigPath("$HOME")  // look for config in home directory
+
+	// Set default values
+	configViper.SetDefault("auto_detect_repo_root", true)
+	configViper.SetDefault("base_dir", "") // Will be computed
+	configViper.SetDefault("backlog_dir", "work-items/backlog")
+	configViper.SetDefault("completed_dir", "work-items/completed")
+	configViper.SetDefault("phase_timeout_days", 7)
+	configViper.SetDefault("auto_assign_agent", true)
+	configViper.SetDefault("enable_git", false)
+
+	// Bind environment variables (these override config file values)
+	_ = configViper.BindEnv("auto_detect_repo_root", "PM_AUTO_DETECT_REPO_ROOT")
+	_ = configViper.BindEnv("base_dir", "PM_BASE_DIR")
+	_ = configViper.BindEnv("backlog_dir", "PM_BACKLOG_DIR")
+	_ = configViper.BindEnv("completed_dir", "PM_COMPLETED_DIR")
+	_ = configViper.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
+	_ = configViper.BindEnv("auto_assign_agent", "PM_AUTO_ASSIGN_AGENT")
+	_ = configViper.BindEnv("enable_git", "PM_ENABLE_GIT")
+
+	// Read config file (ignore error if file doesn't exist)
+	_ = configViper.ReadInConfig()
+}
+
+// init initializes the global viper configuration
+func init() {
+	configViper = viper.New()
+	initializeViper()
+}
+
+// reloadConfigForTesting reloads the configuration (used for testing)
+func reloadConfigForTesting() {
+	// Reset viper instance
+	configViper = viper.New()
+	initializeViper()
+}
 
 // ItemType represents the type of work item
 type ItemType string
@@ -233,54 +277,25 @@ func detectRepoRoot() string {
 
 // DefaultConfig returns the default configuration with file and environment variable support
 func DefaultConfig() Config {
-	// Initialize viper for configuration
-	v := viper.New()
-
-	// Determine base directory
-	autoDetect := true
-	if envVal := os.Getenv("PM_AUTO_DETECT_REPO_ROOT"); envVal != "" {
-		autoDetect = envVal == "true"
+	// Determine base directory with proper precedence
+	baseDir := configViper.GetString("base_dir")
+	if baseDir == "" {
+		// Not set in config or env, use auto-detection logic
+		autoDetect := configViper.GetBool("auto_detect_repo_root")
+		if autoDetect {
+			baseDir = detectRepoRoot()
+		} else {
+			baseDir = "./wiki"
+		}
 	}
-	baseDir := "./wiki"
-	if autoDetect {
-		baseDir = detectRepoRoot()
-	}
-	if envBaseDir := os.Getenv("PM_BASE_DIR"); envBaseDir != "" {
-		baseDir = envBaseDir
-	}
-
-	// Set default values (relative to baseDir)
-	v.SetDefault("auto_detect_repo_root", true)
-	v.SetDefault("backlog_dir", "work-items/backlog")
-	v.SetDefault("completed_dir", "work-items/completed")
-	v.SetDefault("phase_timeout_days", 7)
-	v.SetDefault("auto_assign_agent", true)
-	v.SetDefault("enable_git", false)
-
-	// Set config file name and paths
-	v.SetConfigName("config") // name of config file (without extension)
-	v.AddConfigPath(".")      // look for config in the working directory
-	v.AddConfigPath("$HOME")  // look for config in home directory
-
-	// Read config file (ignore error if file doesn't exist)
-	_ = v.ReadInConfig() // This will not error if config file is not found
-
-	// Bind environment variables (these override config file values)
-	_ = v.BindEnv("auto_detect_repo_root", "PM_AUTO_DETECT_REPO_ROOT")
-	_ = v.BindEnv("base_dir", "PM_BASE_DIR")
-	_ = v.BindEnv("backlog_dir", "PM_BACKLOG_DIR")
-	_ = v.BindEnv("completed_dir", "PM_COMPLETED_DIR")
-	_ = v.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
-	_ = v.BindEnv("auto_assign_agent", "PM_AUTO_ASSIGN_AGENT")
-	_ = v.BindEnv("enable_git", "PM_ENABLE_GIT")
 
 	return Config{
 		BaseDir:            baseDir,
-		AutoDetectRepoRoot: v.GetBool("auto_detect_repo_root"),
-		BacklogDir:         filepath.Join(baseDir, v.GetString("backlog_dir")),
-		CompletedDir:       filepath.Join(baseDir, v.GetString("completed_dir")),
-		PhaseTimeoutDays:   v.GetInt("phase_timeout_days"),
-		AutoAssignAgent:    v.GetBool("auto_assign_agent"),
-		EnableGit:          v.GetBool("enable_git"),
+		AutoDetectRepoRoot: configViper.GetBool("auto_detect_repo_root"),
+		BacklogDir:         filepath.Join(baseDir, configViper.GetString("backlog_dir")),
+		CompletedDir:       filepath.Join(baseDir, configViper.GetString("completed_dir")),
+		PhaseTimeoutDays:   configViper.GetInt("phase_timeout_days"),
+		AutoAssignAgent:    configViper.GetBool("auto_assign_agent"),
+		EnableGit:          configViper.GetBool("enable_git"),
 	}
 }
