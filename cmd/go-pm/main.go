@@ -48,6 +48,43 @@ var progressCmd = &cobra.Command{
 	Short: "Track work item progress",
 }
 
+// createWorkItemCommand creates a cobra command for creating work items of a specific type
+func createWorkItemCommand(itemType pm.ItemType, description string) *cobra.Command {
+	return &cobra.Command{
+		Use:   fmt.Sprintf("%s [name]", strings.ToLower(string(itemType))),
+		Short: fmt.Sprintf("Create new %s", description),
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			config := pm.DefaultConfig()
+			manager := pm.NewDefaultManager(config)
+
+			req := pm.CreateRequest{
+				Type: itemType,
+				Name: args[0],
+			}
+
+			item, err := manager.CreateWorkItem(ctx, req)
+			if err != nil {
+				return fmt.Errorf("failed to create work item: %w", err)
+			}
+
+			fmt.Printf("✅ Work item created successfully!\n")
+			fmt.Printf("📁 Directory: %s\n", item.Path)
+			if item.Title != "" {
+				fmt.Printf("📝 Title: %s\n", item.Title)
+			}
+			fmt.Printf("🌿 Branch: %s/%s\n", item.Type, item.Name)
+			fmt.Printf("\nNext steps:\n")
+			fmt.Printf("1. Edit %s with details\n", item.Path)
+			fmt.Printf("2. Update status as work progresses\n")
+			fmt.Printf("3. Reference this path in commit messages\n")
+
+			return nil
+		},
+	}
+}
+
 func main() {
 	// Check for flags and set env vars
 	for i, arg := range os.Args {
@@ -66,96 +103,9 @@ func main() {
 
 	config := pm.DefaultConfig()
 	manager := pm.NewDefaultManager(config)
-	helper := pm.NewCLIHelper(manager, config) // New commands
-	newCmd.AddCommand(&cobra.Command{
-		Use:   "feature [name]",
-		Short: "Create new feature",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			req := pm.CreateRequest{
-				Type: pm.TypeFeature,
-				Name: args[0],
-			}
-
-			item, err := manager.CreateWorkItem(ctx, req)
-			if err != nil {
-				return fmt.Errorf("failed to create work item: %w", err)
-			}
-
-			fmt.Printf("✅ Work item created successfully!\n")
-			fmt.Printf("📁 Directory: %s\n", item.Path)
-			if item.Title != "" {
-				fmt.Printf("📝 Title: %s\n", item.Title)
-			}
-			fmt.Printf("🌿 Branch: %s/%s\n", item.Type, item.Name)
-			fmt.Printf("\nNext steps:\n")
-			fmt.Printf("1. Edit %s with details\n", item.Path)
-			fmt.Printf("2. Update status as work progresses\n")
-			fmt.Printf("3. Reference this path in commit messages\n")
-
-			return nil
-		},
-	})
-
-	newCmd.AddCommand(&cobra.Command{
-		Use:   "bug [name]",
-		Short: "Create new bug report",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			req := pm.CreateRequest{
-				Type: pm.TypeBug,
-				Name: args[0],
-			}
-
-			item, err := manager.CreateWorkItem(ctx, req)
-			if err != nil {
-				return fmt.Errorf("failed to create work item: %w", err)
-			}
-
-			fmt.Printf("✅ Work item created successfully!\n")
-			fmt.Printf("📁 Directory: %s\n", item.Path)
-			if item.Title != "" {
-				fmt.Printf("📝 Title: %s\n", item.Title)
-			}
-			fmt.Printf("🌿 Branch: %s/%s\n", item.Type, item.Name)
-			fmt.Printf("\nNext steps:\n")
-			fmt.Printf("1. Edit %s with details\n", item.Path)
-			fmt.Printf("2. Update status as work progresses\n")
-			fmt.Printf("3. Reference this path in commit messages\n")
-
-			return nil
-		},
-	})
-
-	newCmd.AddCommand(&cobra.Command{
-		Use:   "experiment [name]",
-		Short: "Create new experiment",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			req := pm.CreateRequest{
-				Type: pm.TypeExperiment,
-				Name: args[0],
-			}
-
-			item, err := manager.CreateWorkItem(ctx, req)
-			if err != nil {
-				return fmt.Errorf("failed to create work item: %w", err)
-			}
-
-			fmt.Printf("✅ Work item created successfully!\n")
-			fmt.Printf("📁 Directory: %s\n", item.Path)
-			if item.Title != "" {
-				fmt.Printf("📝 Title: %s\n", item.Title)
-			}
-			fmt.Printf("🌿 Branch: %s/%s\n", item.Type, item.Name)
-			fmt.Printf("\nNext steps:\n")
-			fmt.Printf("1. Edit %s with details\n", item.Path)
-			fmt.Printf("2. Update status as work progresses\n")
-			fmt.Printf("3. Reference this path in commit messages\n")
-
-			return nil
-		},
-	})
+	newCmd.AddCommand(createWorkItemCommand(pm.TypeFeature, "feature"))
+	newCmd.AddCommand(createWorkItemCommand(pm.TypeBug, "bug report"))
+	newCmd.AddCommand(createWorkItemCommand(pm.TypeExperiment, "experiment"))
 	listCmd.AddCommand(&cobra.Command{
 		Use:   "proposed",
 		Short: "List proposed work items",
@@ -555,7 +505,10 @@ func main() {
 		Use:   "instructions",
 		Short: "Print comprehensive guidelines for project contributors and AI agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return helper.PrintInstructions(ctx)
+			config := pm.DefaultConfig()
+			instructions := pm.GetInstructions(config)
+			fmt.Print(instructions)
+			return nil
 		},
 	})
 
