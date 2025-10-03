@@ -153,8 +153,8 @@ go-pm new feature my-feature
 
 - `go-pm new feature|bug|experiment <name>` - Create new work items
 - `go-pm list proposed|active|completed|all` - List work items by status
-- `go-pm status update <name> <status>` - Update work item status (proposed, discovery, planning, execution, cleanup, review, completed)
 - `go-pm status show <name>` - Show work item details
+- `go-pm status update <name> <status>` - Update work item status (proposed, discovery, planning, execution, cleanup, review, completed)
 - `go-pm phase advance <name>` - Advance work item to next phase
 - `go-pm phase set <name> <phase>` - Manually set phase (admin override) (discovery, planning, execution, cleanup)
 - `go-pm phase tasks <name>` - Show current phase tasks

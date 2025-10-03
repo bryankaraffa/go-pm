@@ -500,10 +500,12 @@ func (s *WorkItemService) AdvancePhase(ctx context.Context, name string) error {
 		return &WorkItemError{Op: "advance_phase", Name: name, Err: fmt.Errorf("failed to update phase: %w", err)}
 	}
 
-	// Create git branch for new phase if needed
-	if err := s.git.CreateWorkItemBranchForPhase(item.Type, item.Name, nextPhase); err != nil {
-		// Log but don't fail
-		fmt.Printf("Warning: Git branch creation failed: %v\n", err)
+	// Create git branch for new phase if git is enabled
+	if s.config.EnableGit {
+		if err := s.git.CreateWorkItemBranchForPhase(item.Type, item.Name, nextPhase); err != nil {
+			// Log but don't fail
+			fmt.Printf("Warning: Git branch creation failed: %v\n", err)
+		}
 	}
 
 	return nil

@@ -61,6 +61,7 @@ type GitClient interface {
     CreateBranch(branchName string) error
     BranchExists(branchName string) bool
     GetCurrentBranch() (string, error)
+    GetGitUserName() (string, error)
 }
 ```
 
