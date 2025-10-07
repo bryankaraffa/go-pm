@@ -22,6 +22,10 @@ func TestDefaultConfig(t *testing.T) {
 	assert.NotEmpty(t, config.CompletedDir)
 	assert.True(t, filepath.IsAbs(config.BacklogDir))
 	assert.True(t, filepath.IsAbs(config.CompletedDir))
+	// TemplatesDir should be absolute path
+	assert.NotEmpty(t, config.TemplatesDir)
+	assert.True(t, filepath.IsAbs(config.TemplatesDir))
+	assert.True(t, config.EnableExternalTemplates)
 }
 
 func TestConfigWithEnvVars(t *testing.T) {
@@ -29,21 +33,29 @@ func TestConfigWithEnvVars(t *testing.T) {
 	origAutoDetect := os.Getenv("PM_AUTO_DETECT_REPO_ROOT")
 	origBacklogDir := os.Getenv("PM_BACKLOG_DIR")
 	origEnableGit := os.Getenv("PM_ENABLE_GIT")
+	origTemplatesDir := os.Getenv("PM_TEMPLATES_DIR")
+	origEnableExternalTemplates := os.Getenv("PM_ENABLE_EXTERNAL_TEMPLATES")
 	defer func() {
 		_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", origAutoDetect)
 		_ = os.Setenv("PM_BACKLOG_DIR", origBacklogDir)
 		_ = os.Setenv("PM_ENABLE_GIT", origEnableGit)
+		_ = os.Setenv("PM_TEMPLATES_DIR", origTemplatesDir)
+		_ = os.Setenv("PM_ENABLE_EXTERNAL_TEMPLATES", origEnableExternalTemplates)
 	}()
 
 	// Set test env vars
 	_ = os.Setenv("PM_AUTO_DETECT_REPO_ROOT", "false")
 	_ = os.Setenv("PM_BACKLOG_DIR", "custom-backlog")
 	_ = os.Setenv("PM_ENABLE_GIT", "true")
+	_ = os.Setenv("PM_TEMPLATES_DIR", "custom-templates")
+	_ = os.Setenv("PM_ENABLE_EXTERNAL_TEMPLATES", "false")
 
 	config := DefaultConfig()
 	assert.False(t, config.AutoDetectRepoRoot)
 	assert.Equal(t, "custom-backlog", config.BacklogDir)
 	assert.True(t, config.EnableGit)
+	assert.Equal(t, "custom-templates", config.TemplatesDir)
+	assert.False(t, config.EnableExternalTemplates)
 }
 
 func TestConfigWithAbsolutePathEnvVars(t *testing.T) {
@@ -140,8 +152,10 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	// The backlog and completed dirs should be absolute paths under the detected repo root
 	expectedBacklogDir := filepath.Join(tempDir, "work-items", "backlog")
 	expectedCompletedDir := filepath.Join(tempDir, "work-items", "completed")
+	expectedTemplatesDir := filepath.Join(tempDir, "work-items", "templates")
 	assert.Equal(t, expectedBacklogDir, config.BacklogDir)
 	assert.Equal(t, expectedCompletedDir, config.CompletedDir)
+	assert.Equal(t, expectedTemplatesDir, config.TemplatesDir)
 
 	// Create manager and test full lifecycle
 	manager := NewDefaultManager(config)

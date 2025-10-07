@@ -28,6 +28,8 @@ func initializeViper() {
 	configViper.SetDefault("completed_dir", "work-items/completed")
 	configViper.SetDefault("phase_timeout_days", 7)
 	configViper.SetDefault("enable_git", false)
+	configViper.SetDefault("templates_dir", "work-items/templates")
+	configViper.SetDefault("enable_external_templates", true)
 
 	// Bind environment variables (these override config file values)
 	_ = configViper.BindEnv("auto_detect_repo_root", "PM_AUTO_DETECT_REPO_ROOT")
@@ -35,6 +37,8 @@ func initializeViper() {
 	_ = configViper.BindEnv("completed_dir", "PM_COMPLETED_DIR")
 	_ = configViper.BindEnv("phase_timeout_days", "PM_PHASE_TIMEOUT_DAYS")
 	_ = configViper.BindEnv("enable_git", "PM_ENABLE_GIT")
+	_ = configViper.BindEnv("templates_dir", "PM_TEMPLATES_DIR")
+	_ = configViper.BindEnv("enable_external_templates", "PM_ENABLE_EXTERNAL_TEMPLATES")
 
 	// Read config file (ignore error if file doesn't exist)
 	_ = configViper.ReadInConfig()
@@ -254,6 +258,10 @@ type Config struct {
 	PhaseTimeoutDays int
 	// EnableGit indicates whether to enable git integration (default: false)
 	EnableGit bool
+	// TemplatesDir is the directory for external templates (default: "work-items/templates")
+	TemplatesDir string
+	// EnableExternalTemplates indicates whether to use external templates (default: true)
+	EnableExternalTemplates bool
 }
 
 // detectRepoRoot attempts to detect the git repository root directory
@@ -294,11 +302,23 @@ func DefaultConfig() Config {
 		}
 	}
 
+	// Handle templates dir
+	templatesDir := configViper.GetString("templates_dir")
+	if autoDetect {
+		// When auto-detecting, templates dir is always relative to repo root
+		baseDir := detectRepoRoot()
+		templatesDir = filepath.Join(baseDir, templatesDir)
+	} else if !filepath.IsAbs(templatesDir) {
+		templatesDir = filepath.Join(".", templatesDir)
+	}
+
 	return Config{
-		AutoDetectRepoRoot: autoDetect,
-		BacklogDir:         backlogDir,
-		CompletedDir:       completedDir,
-		PhaseTimeoutDays:   configViper.GetInt("phase_timeout_days"),
-		EnableGit:          configViper.GetBool("enable_git"),
+		AutoDetectRepoRoot:      autoDetect,
+		BacklogDir:              backlogDir,
+		CompletedDir:            completedDir,
+		PhaseTimeoutDays:        configViper.GetInt("phase_timeout_days"),
+		EnableGit:               configViper.GetBool("enable_git"),
+		TemplatesDir:            templatesDir,
+		EnableExternalTemplates: configViper.GetBool("enable_external_templates"),
 	}
 }

@@ -36,6 +36,74 @@ go-pm version
 go-pm --help
 ```
 
+## Configuration
+
+go-pm can be configured via environment variables or a `config.yaml` file in the current directory.
+
+### Environment Variables
+
+- `PM_AUTO_DETECT_REPO_ROOT` (default: true) - Automatically detect the git repository root
+- `PM_BACKLOG_DIR` (default: "work-items/backlog") - Directory for active work items
+- `PM_COMPLETED_DIR` (default: "work-items/completed") - Directory for completed work items
+- `PM_TEMPLATES_DIR` (default: "work-items/templates") - Directory for external templates
+- `PM_ENABLE_EXTERNAL_TEMPLATES` (default: true) - Use external templates if available
+- `PM_PHASE_TIMEOUT_DAYS` (default: 7) - Days before phase timeout warning
+- `PM_ENABLE_GIT` (default: false) - Enable git integration
+
+When `PM_AUTO_DETECT_REPO_ROOT` is enabled (default), all directory paths are treated as relative to the detected git repository root.
+
+### Config File
+
+Create a `config.yaml` file in your project root:
+
+```yaml
+auto_detect_repo_root: true
+backlog_dir: "work-items/backlog"
+completed_dir: "work-items/completed"
+templates_dir: "work-items/templates"
+enable_external_templates: true
+phase_timeout_days: 7
+enable_git: false
+```
+
+## Templates
+
+go-pm supports customizable templates for work items. Templates are Markdown files that define the structure and content of work item README files.
+
+### Template Files
+
+Templates are stored in the `work-items/templates/` directory (configurable via `PM_TEMPLATES_DIR`):
+
+- `workitem-feature.md` - Template for feature work items
+- `workitem-bug.md` - Template for bug work items  
+- `workitem-experiment.md` - Template for experiment work items
+
+### Template Placeholders
+
+Templates support the following placeholders that are automatically replaced when creating work items:
+
+- `{{name}}` - The work item name (e.g., "user-authentication")
+
+Example template content:
+```markdown
+# Feature: {{name}}
+
+## Status: PROPOSED
+## Phase: discovery
+
+## Overview
+Brief description of the feature.
+```
+
+### External Templates
+
+By default, go-pm uses external templates if available. If a template file doesn't exist in the templates directory, it automatically creates one from the built-in template. You can then customize these external templates for your project.
+
+To disable external templates and always use built-in templates:
+```bash
+export PM_ENABLE_EXTERNAL_TEMPLATES=false
+```
+
 ## Agent / Assistant Usage
 
 To provide project-specific instructions to your agent or LLM, run:
@@ -100,51 +168,6 @@ func main() {
         log.Printf("Work item: %s (%s)", item.Name, item.Status)
     }
 }
-```
-
-## Configuration
-
-The tool supports configuration through config files and environment variables. Configuration files take precedence over defaults, and environment variables override both.
-
-### CLI flags
-
-The CLI also accepts a couple of persistent flags which the `main` program maps to environment variables for convenience:
-
-- `--enable-git` — enable git integration for branch creation and related operations (sets `PM_ENABLE_GIT=true` when passed).
-- `--auto-detect-repo-root` / `--auto-detect-repo-root=false` — control whether the repository root is auto-detected (this maps to `PM_AUTO_DETECT_REPO_ROOT`).
-
-When a CLI flag is provided, the program sets the corresponding `PM_` environment variable at startup; environment variables continue to take precedence over config file values.
-
-### Config Files
-
-Create a `config.yaml`, `config.json`, or `config.toml` file in the current directory or your home directory. See `config.yaml.example` for all available options:
-
-```yaml
-# config.yaml
-auto_detect_repo_root: true
-backlog_dir: "work-items/backlog"
-completed_dir: "work-items/completed"
-phase_timeout_days: 7
-enable_git: false
-```
-
-### Environment Variables
-
-Environment variables with the `PM_` prefix override config file values:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PM_AUTO_DETECT_REPO_ROOT` | Auto-detect repository root | `true` |
-| `PM_BACKLOG_DIR` | Active work items directory (relative to repository root by default) | `"work-items/backlog"` |
-| `PM_COMPLETED_DIR` | Completed work items directory (relative to repository root by default) | `"work-items/completed"` |
-| `PM_PHASE_TIMEOUT_DAYS` | Days before phase timeout warning | `7` |
-| `PM_ENABLE_GIT` | Enable git integration | `false` |
-
-Example:
-```bash
-export PM_BACKLOG_DIR="work-items/backlog"
-export PM_COMPLETED_DIR="work-items/completed"
-go-pm new feature my-feature
 ```
 
 ## CLI Commands

@@ -159,28 +159,95 @@ func NewTemplateProcessor(fs FileSystem, config Config) *TemplateProcessor {
 	return &TemplateProcessor{fs: fs, config: config}
 }
 
-// ProcessTemplate processes an embedded template for a work item.
+// ProcessTemplate processes a template for a work item.
 // It replaces {{name}} placeholders with the work item name.
-// Templates are always sourced from embedded resources.
+// If external templates are enabled, it first checks for templates in the configured templates directory.
+// If not found or disabled, it falls back to embedded templates.
 func (tp *TemplateProcessor) ProcessTemplate(targetPath, name string, itemType ItemType) error {
-	// Get embedded template content
-	var embeddedContent string
-	switch itemType {
-	case TypeFeature:
-		embeddedContent = embeddedTemplateWorkItemFeature
-	case TypeBug:
-		embeddedContent = embeddedTemplateWorkItemBug
-	case TypeExperiment:
-		embeddedContent = embeddedTemplateWorkItemExperiment
-	default:
-		return fmt.Errorf("unsupported item type: %s", itemType)
+	var templateContent string
+	var err error
+
+	if tp.config.EnableExternalTemplates {
+		// Try to load external template first
+		templateContent, err = tp.loadExternalTemplate(itemType)
+		if err != nil {
+			// Fall back to embedded template
+			templateContent, err = tp.getEmbeddedTemplate(itemType)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// Use embedded template
+		templateContent, err = tp.getEmbeddedTemplate(itemType)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Process template placeholders
-	processed := strings.ReplaceAll(embeddedContent, "{{name}}", name)
+	processed := strings.ReplaceAll(templateContent, "{{name}}", name)
 
 	// Write the processed content directly to target
 	return tp.fs.WriteFile(targetPath, []byte(processed))
+}
+
+// loadExternalTemplate attempts to load a template from the external templates directory
+func (tp *TemplateProcessor) loadExternalTemplate(itemType ItemType) (string, error) {
+	var templateFile string
+	switch itemType {
+	case TypeFeature:
+		templateFile = "workitem-feature.md"
+	case TypeBug:
+		templateFile = "workitem-bug.md"
+	case TypeExperiment:
+		templateFile = "workitem-experiment.md"
+	default:
+		return "", fmt.Errorf("unsupported item type: %s", itemType)
+	}
+
+	templatePath := filepath.Join(tp.config.TemplatesDir, templateFile)
+	if !tp.fs.FileExists(templatePath) {
+		// Create the templates directory if it doesn't exist
+		dir := filepath.Dir(templatePath)
+		if err := tp.fs.CreateDirectory(dir); err != nil {
+			return "", fmt.Errorf("failed to create templates directory: %w", err)
+		}
+
+		// Get the embedded template content
+		content, err := tp.getEmbeddedTemplate(itemType)
+		if err != nil {
+			return "", err
+		}
+
+		// Write the embedded template to the external location
+		if err := tp.fs.WriteFile(templatePath, []byte(content)); err != nil {
+			return "", fmt.Errorf("failed to create external template: %w", err)
+		}
+
+		return content, nil
+	}
+
+	content, err := tp.fs.ReadFile(templatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read external template %s: %w", templatePath, err)
+	}
+
+	return string(content), nil
+}
+
+// getEmbeddedTemplate returns the embedded template content for the given item type
+func (tp *TemplateProcessor) getEmbeddedTemplate(itemType ItemType) (string, error) {
+	switch itemType {
+	case TypeFeature:
+		return embeddedTemplateWorkItemFeature, nil
+	case TypeBug:
+		return embeddedTemplateWorkItemBug, nil
+	case TypeExperiment:
+		return embeddedTemplateWorkItemExperiment, nil
+	default:
+		return "", fmt.Errorf("unsupported item type: %s", itemType)
+	}
 }
 
 // WorkItemParser parses work item metadata from README files.
