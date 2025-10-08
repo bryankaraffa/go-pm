@@ -82,5 +82,37 @@ func (fs *MockFileSystem) MoveDirectory(src, dst string) error {
 	// Mark destination as existing and remove source
 	fs.dirs[dst] = true
 	delete(fs.dirs, src)
+
+	// Move all files under the source directory to the destination
+	srcPrefix := src + "/"
+	dstPrefix := dst + "/"
+
+	newFiles := make(map[string][]byte)
+	for path, content := range fs.files {
+		if strings.HasPrefix(path, srcPrefix) {
+			newPath := dstPrefix + strings.TrimPrefix(path, srcPrefix)
+			newFiles[newPath] = content
+			delete(fs.files, path)
+		} else {
+			newFiles[path] = content
+		}
+	}
+	fs.files = newFiles
+
+	return nil
+}
+
+func (fs *MockFileSystem) RemoveDirectory(path string) error {
+	// Remove the directory
+	delete(fs.dirs, path)
+
+	// Remove all files under this directory
+	pathPrefix := path + "/"
+	for filePath := range fs.files {
+		if strings.HasPrefix(filePath, pathPrefix) {
+			delete(fs.files, filePath)
+		}
+	}
+
 	return nil
 }

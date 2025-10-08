@@ -44,6 +44,9 @@ type FileSystem interface {
 	// MoveDirectory moves a directory from src to dst.
 	// This is equivalent to renaming the directory.
 	MoveDirectory(src, dst string) error
+
+	// RemoveDirectory removes a directory and all its contents.
+	RemoveDirectory(path string) error
 }
 
 // OSFileSystem implements FileSystem using the OS file system
@@ -144,6 +147,12 @@ func (fs *OSFileSystem) ListFiles(path string) ([]string, error) {
 // This is equivalent to renaming the directory. Both src and dst must be on the same filesystem.
 func (fs *OSFileSystem) MoveDirectory(src, dst string) error {
 	return os.Rename(src, dst)
+}
+
+// RemoveDirectory removes a directory and all its contents.
+// This is equivalent to rm -rf.
+func (fs *OSFileSystem) RemoveDirectory(path string) error {
+	return os.RemoveAll(path)
 }
 
 // TemplateProcessor handles template processing for work items.

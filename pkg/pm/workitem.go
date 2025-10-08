@@ -202,6 +202,15 @@ func (s *WorkItemService) ArchiveWorkItem(ctx context.Context, name string) erro
 		return &WorkItemError{Op: "archive", Name: name, Err: fmt.Errorf("failed to create completed directory: %w", err)}
 	}
 
+	// Remove destination directory if it exists to avoid os.Rename conflicts
+	if s.fs.DirectoryExists(dest) {
+		// For safety, we could move it to a backup, but for now we'll just remove it
+		// since archiving should replace any existing completed work item
+		if err := s.fs.RemoveDirectory(dest); err != nil {
+			return &WorkItemError{Op: "archive", Name: name, Err: fmt.Errorf("failed to remove existing completed directory: %w", err)}
+		}
+	}
+
 	// Move directory
 	if err := s.fs.MoveDirectory(source, dest); err != nil {
 		return &WorkItemError{Op: "archive", Name: name, Err: fmt.Errorf("failed to move work item: %w", err)}
