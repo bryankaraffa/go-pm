@@ -17,6 +17,16 @@ backlog_dir: "work-items/backlog"
 # Can also be an absolute path
 completed_dir: "work-items/completed"
 
+# Directory for external templates (default: "work-items/templates")
+# When auto_detect_repo_root is true, this is relative to <repo-root>
+# When auto_detect_repo_root is false, this is relative to the current directory
+# Can also be an absolute path
+templates_dir: "work-items/templates"
+
+# Whether to enable external templates (default: true)
+# When enabled, templates are loaded from templates_dir first, falling back to embedded templates
+enable_external_templates: true
+
 # Number of days before showing phase timeout warnings (default: 7)
 phase_timeout_days: 7
 
