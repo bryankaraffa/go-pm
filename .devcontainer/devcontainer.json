@@ -1,6 +1,6 @@
 {
     "name": "Go PM CLI Dev Container",
-    "image": "mcr.microsoft.com/vscode/devcontainers/go:1",
+    "image": "mcr.microsoft.com/vscode/devcontainers/go:1.25", // Need >= Go 1.25 for goreleaser v2
     "customizations": {
         "vscode": {
             "extensions": [
@@ -30,5 +30,6 @@
             // "version": "latest",
             // "dockerDashComposeVersion": "v2"
         },
-    }
+    },
+    "postCreateCommand": "go install github.com/goreleaser/goreleaser/v2@v2.11.2" // 2.12.x require go1.25.1 and the microsoft devcontainer images only on 1.25.0 as of now.. short term fix to pin to go1.24 version
 }

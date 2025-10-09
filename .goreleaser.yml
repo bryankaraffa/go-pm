@@ -1,3 +1,5 @@
+version: 2
+
 project_name: go-pm
 
 before:
@@ -30,9 +32,7 @@ builds:
       - goos: openbsd
         goarch: arm
     ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.gitSHA={{.Commit}}
+      - -s -w -X main.version={{.Version}} -X main.gitSHA={{.ShortCommit}} -X main.buildDate={{.Date}}
 
 archives:
   - formats: [tar.gz]

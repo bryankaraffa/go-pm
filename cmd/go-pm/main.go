@@ -20,7 +20,6 @@ var rootCmd = &cobra.Command{
 
 var enableGit bool
 var autoDetectRepoRoot bool
-var baseDir string
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&enableGit, "enable-git", false, "Enable git integration")

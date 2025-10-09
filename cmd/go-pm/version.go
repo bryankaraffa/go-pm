@@ -13,6 +13,9 @@ var version = "dev"
 // gitSHA is set during build time via -ldflags
 var gitSHA = "unknown"
 
+// buildDate is set during build time via -ldflags
+var buildDate = "unknown"
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
@@ -20,6 +23,7 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("go-pm version %s\n", version)
 		fmt.Printf("Git SHA: %s\n", gitSHA)
+		fmt.Printf("Build date: %s\n", buildDate)
 		fmt.Printf("Go version: %s\n", runtime.Version())
 		fmt.Printf("OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	},
