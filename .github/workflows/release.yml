@@ -30,3 +30,9 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Verify the build by checking version in one of the binaries
+      - name: Verify Build
+        run: |
+          echo "Checking version in Linux AMD64 binary..."
+          ./dist/go-pm_linux_amd64_v1/go-pm version

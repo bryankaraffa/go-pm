@@ -32,7 +32,11 @@ builds:
       - goos: openbsd
         goarch: arm
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.gitSHA={{.ShortCommit}} -X main.buildDate={{.Date}}
+      - -s
+      - -w
+      - -X main.version={{.Version}}
+      - -X main.gitSHA={{.ShortCommit}}
+      - -X main.buildDate={{.Date}}
 
 archives:
   - formats: [tar.gz]
