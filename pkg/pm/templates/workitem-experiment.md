@@ -1,7 +1,7 @@
 # Experiment: {{name}}
 
-## Status: PROPOSED
-## Phase: discovery
+## Status: PLANNING
+## Phase: planning
 ## Progress: 0%
 ## Assigned To: agent
 
@@ -19,25 +19,13 @@ Potential risks and mitigation strategies.
 
 ---
 
-## Discovery Phase
+## Planning Phase
 
 ### Goals
 - Define the experiment clearly
 - Understand constraints and resources needed
 - Identify success metrics
-
-### Tasks
-- [ ] Define hypothesis clearly
-- [ ] Identify variables and controls
-- [ ] Plan data collection
-- [ ] Assess resource requirements
-
-### Notes
-Initial planning and preparation.
-
----
-
-## Planning Phase
+- Design experimental methodology
 
 ### Experimental Design
 Detailed experimental methodology.
@@ -51,23 +39,21 @@ What data will be collected and how.
 ### Analysis Plan
 How results will be analyzed.
 
-### Acceptance Criteria
-- [ ] Experiment designed properly
-- [ ] Data collection plan in place
-- [ ] Analysis methodology defined
-
 ### Tasks
+- [ ] Define hypothesis clearly
+- [ ] Identify variables and controls
+- [ ] Plan data collection
+- [ ] Assess resource requirements
 - [ ] Design experimental methodology
 - [ ] Set up data collection
 - [ ] Prepare analysis tools
-- [ ] Plan execution steps
 
 ### Notes
-Detailed experimental design and planning.
+Experimental design and planning.
 
 ---
 
-## Execution Phase
+## Implementation Phase
 
 ### Implementation
 How the experiment was conducted.
@@ -89,7 +75,7 @@ Execution details and real-time observations.
 
 ---
 
-## Cleanup Phase
+## Review Phase
 
 ### Data Analysis
 Analysis of results and findings.

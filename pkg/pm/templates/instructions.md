@@ -72,80 +72,65 @@ Before starting any work:
 
 ## Phase Workflow
 
-Work items progress through four mandatory phases:
+Work items progress through three mandatory phases:
 
-### DISCOVERY Phase (Human-led, Agent-assisted)
-**Goal:** Understand the problem space
+### Planning Phase (Agent-led, Human-validated)
+**Goal:** Understand the problem and design the solution
 
 **Activities:**
 - Analyze requirements and constraints
 - Research existing code and documentation
-- Identify stakeholders and dependencies
+- Create technical design specifications
+- Define API contracts and interfaces
+- Break down work into tasks
+- Identify testing requirements
 - Document problem statement and success criteria
 
 **Commands:**
 - `go-pm status show <name>` - Check current status
 - `go-pm progress update <name> <percentage>` - Update progress (0-25%)
-- `go-pm phase advance <name>` - Move to PLANNING when ready
+- `go-pm phase advance <name>` - Move to IMPLEMENTATION when design approved
 
-### PLANNING Phase (Agent-led, Human-validated)
-**Goal:** Design the solution
-
-**Activities:**
-- Create technical design specifications
-- Define API contracts and interfaces
-- Break down work into tasks
-- Identify testing requirements
-- Update documentation with design decisions
-
-**Commands:**
-- `go-pm phase tasks <name>` - View current phase tasks
-- `go-pm phase complete <name> <task-id>` - Mark tasks complete
-- `go-pm progress update <name> <percentage>` - Update progress (26-50%)
-- `go-pm phase advance <name>` - Move to EXECUTION when design approved
-
-### EXECUTION Phase (Agent-led, Human-oversight)
-**Goal:** Implement the solution
+### Implementation Phase (Agent-led, Human-oversight)
+**Goal:** Build the solution
 
 **Activities:**
-- Write production code
-- Create comprehensive tests
-- Update documentation
-- Code review and validation
-- Integration testing
+- Checkpoint frequently (every 30 minutes recommended)
+- Use `go-pm checkpoint <name> <message>` to save progress
+- Update work item documentation with implementation details
 
 **Commands:**
-- `go-pm progress update <name> <percentage>` - Update progress (51-90%)
-- `go-pm phase advance <name>` - Move to CLEANUP when implementation complete
+- `go-pm checkpoint <name> <message>` - Save progress without advancing phase
+- `go-pm progress update <name> <percentage>` - Update progress (26-90%)
+- `go-pm review request <name>` - Move to REVIEW when implementation complete
 
-### CLEANUP Phase (Human-led, Agent-assisted)
-**Goal:** Finalize and archive
+### Review Phase (Human-led, Agent-assisted)
+**Goal:** Finalize and validate the solution
 
 **Activities:**
 - Final testing and validation
+- Code review and feedback incorporation
 - Documentation completion
 - Postmortem analysis
 - Knowledge sharing
-- Final review
-- Archive the work item
+- Final review and approval
 
 **Commands:**
-- `go-pm phase complete <name> <task-id>` - Mark cleanup tasks as completed
-- `go-pm progress update <name> <percentage>` - Update progress (91-100%)
-- `go-pm phase advance <name>` - Move to review status when cleanup tasks are done
-- `go-pm phase advance <name>` - Mark as completed when review is finished
+- `go-pm status show <name>` - Check review status
+- `go-pm review approve <name>` - Mark as COMPLETED (100% progress)
 - `go-pm archive <name>` - Archive when in completed status
 
 ## Progress Tracking
 
-Update progress regularly (at least daily):
+Update progress regularly using checkpoints and meaningful increments:
 
+- Use `go-pm checkpoint <name> <message>` to save progress without advancing phase
 - Use `go-pm progress update <name> <percentage>` to track completion
 - Progress should reflect actual work completed, not time spent
+- Checkpoint frequently (every 30 minutes recommended) during implementation
 - Always update progress before ending a work session
-- Use meaningful increments (e.g., 10-20% per significant milestone)
 
-Status transitions happen automatically with phase advancement. Manual status updates are rarely needed.
+Status transitions happen automatically with phase advancement and review commands. Manual status updates are rarely needed.
 
 ## Managing Work Items
 
@@ -155,15 +140,14 @@ Status transitions happen automatically with phase advancement. Manual status up
 - `go-pm status show <name>` - Detailed view of specific item
 
 ### Assignment
-- Work items are automatically assigned to the creating agent
-- Use `go-pm assign <name> <assignee>` to reassign (rarely needed)
+- Use `go-pm assign <name> <assignee>` to reassign
 - Valid assignees: "human", "agent", or specific agent IDs
 
 ### Completion
 When work is fully done:
 1. Ensure all tasks are completed
 2. Update progress to 100%
-3. Advance through CLEANUP phase
+3. Advance through REVIEW phase
 4. Use `go-pm archive <name>` to archive
 
 ## Development Workflow Integration
@@ -175,15 +159,16 @@ When work is fully done:
 
 ### During Development
 1. Work within the generated directory structure
-2. Update documentation in the work item's README.md
-3. Commit changes with meaningful messages
-4. Update progress regularly: `go-pm progress update <name> <percentage>`
+2. Checkpoint changes frequently (every 30 minutes recommended)
+3. Use `go-pm checkpoint <name> <message>` to save progress
+4. Update documentation in the work item's README.md
+5. Update progress regularly: `go-pm progress update <name> <percentage>`
 
 ### Code Changes
 - All code changes must relate to an active work item
 - Update the work item's documentation with implementation details
 - Include work item references in commit messages
-- Run tests and validate before phase advancement
+- Run tests and validate before requesting review
 
 ### Communication
 - Use work item documentation for knowledge sharing
@@ -198,12 +183,11 @@ When work is fully done:
 - **ALWAYS** update progress before ending work sessions
 - **ALWAYS** advance phases when criteria are met
 - **ALWAYS** document decisions and changes
-- **ALWAYS** run tests before phase advancement
+- **ALWAYS** run tests before requesting review
 
 ### Quality Assurance
 - Complete all phase tasks before advancing
 - Ensure documentation is current and accurate
-- Test thoroughly before moving to CLEANUP
 - Get human validation for design decisions
 
 ### Collaboration
@@ -216,7 +200,6 @@ When work is fully done:
 - Keep work items focused (single responsibility)
 - Break large features into multiple work items
 - Update progress meaningfully, not just daily
-- Use templates provided by the tool
 
 ### Error Handling
 - If blocked, document the issue in the work item
@@ -230,19 +213,30 @@ When work is fully done:
 ```bash
 go-pm new feature user-login
 go-pm phase advance user-login
-# Work on discovery...
+# Work on planning...
 go-pm progress update user-login 25
 go-pm phase advance user-login
-# Continue through phases...
+# Implement using TDD: RED → GREEN → REFACTOR
+go-pm checkpoint user-login "Completed user authentication logic"
+go-pm progress update user-login 75
+go-pm review request user-login
+# Human reviews and approves
+go-pm review approve user-login
+go-pm archive user-login
 ```
 
 ### Fixing a Bug
 ```bash
 go-pm new bug null-pointer-crash
 go-pm phase advance null-pointer-crash
-# Investigate and fix...
-go-pm progress update null-pointer-crash 100
+# Plan the fix...
+go-pm progress update null-pointer-crash 25
 go-pm phase advance null-pointer-crash
+# Implement fix using TDD
+go-pm checkpoint null-pointer-crash "Added null check"
+go-pm progress update null-pointer-crash 75
+go-pm review request null-pointer-crash
+go-pm review approve null-pointer-crash
 go-pm archive null-pointer-crash
 ```
 
@@ -250,6 +244,7 @@ go-pm archive null-pointer-crash
 ```bash
 go-pm list active
 go-pm status show existing-feature
+go-pm checkpoint existing-feature "Refactored database layer"
 go-pm progress update existing-feature 60
 # Continue working...
 ```

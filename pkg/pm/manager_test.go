@@ -38,8 +38,8 @@ func TestManagerCreateWorkItem(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "feature-test-feature", item.Name)
 	assert.Equal(t, TypeFeature, item.Type)
-	assert.Equal(t, StatusProposed, item.Status)
-	assert.Equal(t, PhaseDiscovery, item.Phase)
+	assert.Equal(t, StatusPlanning, item.Status)
+	assert.Equal(t, PhasePlanning, item.Phase)
 }
 
 func TestManagerListWorkItems(t *testing.T) {
@@ -102,13 +102,13 @@ func TestManagerUpdateStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	// Update status
-	err = manager.UpdateStatus(context.Background(), "feature-test-feature", StatusInProgressDiscovery)
+	err = manager.UpdateStatus(context.Background(), "feature-test-feature", StatusImplementation)
 	require.NoError(t, err)
 
 	// Verify status was updated
 	item, err := manager.GetWorkItem(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
-	assert.Equal(t, StatusInProgressDiscovery, item.Status)
+	assert.Equal(t, StatusImplementation, item.Status)
 }
 
 func TestManagerUpdateProgress(t *testing.T) {
@@ -176,15 +176,15 @@ func TestManagerAdvancePhase(t *testing.T) {
 	_, err = manager.CreateWorkItem(context.Background(), req)
 	require.NoError(t, err)
 
-	// Advance phase from PROPOSED to IN_PROGRESS_DISCOVERY
+	// Advance phase from PLANNING to IMPLEMENTATION
 	err = manager.AdvancePhase(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
 
 	// Verify phase was advanced
 	item, err := manager.GetWorkItem(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
-	assert.Equal(t, StatusInProgressDiscovery, item.Status)
-	assert.Equal(t, PhaseDiscovery, item.Phase)
+	assert.Equal(t, StatusImplementation, item.Status)
+	assert.Equal(t, PhaseImplementation, item.Phase)
 }
 
 func TestManagerCompleteTask(t *testing.T) {
@@ -202,35 +202,35 @@ func TestManagerCompleteTask(t *testing.T) {
 	_, err = manager.CreateWorkItem(context.Background(), req)
 	require.NoError(t, err)
 
-	// Advance to IN_PROGRESS_DISCOVERY status (first advance from PROPOSED)
+	// Advance to IMPLEMENTATION status (first advance from PLANNING)
 	err = manager.AdvancePhase(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
 
-	// Verify we're now in discovery phase with IN_PROGRESS_DISCOVERY status
+	// Verify we're now in implementation phase with IMPLEMENTATION status
 	item, err := manager.GetWorkItem(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
-	assert.Equal(t, StatusInProgressDiscovery, item.Status)
-	assert.Equal(t, PhaseDiscovery, item.Phase)
+	assert.Equal(t, StatusImplementation, item.Status)
+	assert.Equal(t, PhaseImplementation, item.Phase)
 
 	// Get tasks first
 	tasks, err := manager.GetPhaseTasks(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
 
-	// Complete all tasks in discovery phase
+	// Complete all tasks in implementation phase
 	for i := range tasks {
 		err = manager.CompleteTask(context.Background(), "feature-test-feature", i)
 		require.NoError(t, err)
 	}
 
-	// Now advance phase again (from IN_PROGRESS_DISCOVERY to IN_PROGRESS_PLANNING)
+	// Now advance phase again (from IMPLEMENTATION to REVIEW)
 	err = manager.AdvancePhase(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
 
-	// Verify phase was advanced to planning
+	// Verify phase was advanced to review
 	item, err = manager.GetWorkItem(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
-	assert.Equal(t, StatusInProgressPlanning, item.Status)
-	assert.Equal(t, PhasePlanning, item.Phase)
+	assert.Equal(t, StatusReview, item.Status)
+	assert.Equal(t, PhaseReview, item.Phase)
 }
 
 func TestManagerGetPhaseTasks(t *testing.T) {
@@ -248,14 +248,14 @@ func TestManagerGetPhaseTasks(t *testing.T) {
 	_, err = manager.CreateWorkItem(context.Background(), req)
 	require.NoError(t, err)
 
-	// Set phase to discovery
-	err = manager.SetPhase(context.Background(), "feature-test-feature", PhaseDiscovery)
+	// Set phase to planning
+	err = manager.SetPhase(context.Background(), "feature-test-feature", PhasePlanning)
 	require.NoError(t, err)
 
 	// Get phase tasks
 	tasks, err := manager.GetPhaseTasks(context.Background(), "feature-test-feature")
 	require.NoError(t, err)
-	assert.True(t, len(tasks) > 0) // Should have tasks for discovery phase
+	assert.True(t, len(tasks) > 0) // Should have tasks for planning phase
 }
 
 func TestManagerGetProgressMetrics(t *testing.T) {
@@ -329,12 +329,9 @@ func TestManagerAdvancePhaseThroughWorkflow(t *testing.T) {
 		expectedPhase  WorkPhase
 		description    string
 	}{
-		{StatusInProgressDiscovery, PhaseDiscovery, "PROPOSED -> IN_PROGRESS_DISCOVERY"},
-		{StatusInProgressPlanning, PhasePlanning, "IN_PROGRESS_DISCOVERY -> IN_PROGRESS_PLANNING"},
-		{StatusInProgressExecution, PhaseExecution, "IN_PROGRESS_PLANNING -> IN_PROGRESS_EXECUTION"},
-		{StatusInProgressCleanup, PhaseCleanup, "IN_PROGRESS_EXECUTION -> IN_PROGRESS_CLEANUP"},
-		{StatusInProgressReview, PhaseCleanup, "IN_PROGRESS_CLEANUP -> IN_PROGRESS_REVIEW"},
-		{StatusCompleted, PhaseCleanup, "IN_PROGRESS_REVIEW -> COMPLETED"},
+		{StatusImplementation, PhaseImplementation, "PLANNING -> IMPLEMENTATION"},
+		{StatusReview, PhaseReview, "IMPLEMENTATION -> REVIEW"},
+		{StatusCompleted, PhaseReview, "REVIEW -> COMPLETED"},
 	}
 
 	for i, tc := range testCases {

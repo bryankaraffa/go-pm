@@ -23,11 +23,12 @@ type Manager interface {
     CreateWorkItem(ctx context.Context, req CreateRequest) (*WorkItem, error)
     ListWorkItems(ctx context.Context, filter ListFilter) ([]WorkItem, error)
     GetWorkItem(ctx context.Context, name string) (*WorkItem, error)
-    UpdateStatus(ctx context.Context, name string, status ItemStatus) error
     UpdateProgress(ctx context.Context, name string, progress int) error
     AssignWorkItem(ctx context.Context, name, assignee string) error
     AdvancePhase(ctx context.Context, name string) error
-    SetPhase(ctx context.Context, name string, phase WorkPhase) error
+    Checkpoint(ctx context.Context, name, message string) error
+    RequestReview(ctx context.Context, name string) error
+    ApproveReview(ctx context.Context, name string) error
     GetPhaseTasks(ctx context.Context, name string) ([]Task, error)
     CompleteTask(ctx context.Context, name string, taskId int) error
     GetProgressMetrics(ctx context.Context, name string) (*WorkItemMetrics, error)
@@ -98,24 +99,37 @@ manager := pm.NewDefaultManagerWithDeps(config, fs, gitClient)
 
 ## Work Item Lifecycle
 
-Work items follow a structured phased development process:
+Work items follow a structured **3-phase development process** with **4 status values**:
 
-1. **PROPOSED**: Initial state, documentation created
-2. **IN_PROGRESS_DISCOVERY** (Discovery Phase): Understanding requirements and constraints
-3. **IN_PROGRESS_PLANNING** (Planning Phase): Technical design and implementation planning
-4. **IN_PROGRESS_EXECUTION** (Execution Phase): Implementation and testing
-5. **IN_PROGRESS_CLEANUP** (Cleanup Phase): Final testing and documentation
-6. **IN_PROGRESS_REVIEW** (Cleanup Phase): Final review before completion
-7. **COMPLETED**: Implementation finished, ready for archive
+### Status Values
+- **PLANNING**: Initial planning and requirements gathering
+- **IMPLEMENTATION**: Active development using TDD practices
+- **REVIEW**: Final validation and approval
+- **COMPLETED**: Work finished and ready for archive
 
 ### Phases
+- **planning**: Analyze requirements, design solution, create specifications
+- **implementation**: Follow TDD (RED → GREEN → REFACTOR), commit frequently
+- **review**: Final testing, documentation, and approval
 
-- **Discovery**: Analyze requirements, stakeholders, and constraints
-- **Planning**: Create technical design, API contracts, and implementation plan
-- **Execution**: Implement functionality, write tests, update documentation
-- **Cleanup**: Final testing, documentation completion, review, and postmortem
+### Workflow Transitions
 
-Each phase includes specific tasks that must be completed before advancing to the next phase. The cleanup phase has two advancement steps: first to review status, then to completed status.
+1. **Create**: Work item starts in PLANNING status, planning phase
+2. **Advance**: `AdvancePhase()` moves planning → implementation
+3. **Checkpoint**: `Checkpoint()` saves progress during implementation (optional)
+4. **Request Review**: `RequestReview()` moves implementation → review
+5. **Approve Review**: `ApproveReview()` moves review → completed (100% progress)
+6. **Archive**: `ArchiveWorkItem()` moves to completed directory
+
+### TDD Workflow
+
+During the implementation phase, follow this cycle:
+1. **RED**: Write failing tests that validate desired functionality
+2. **GREEN**: Write minimal code to make tests pass
+3. **REFACTOR**: Improve code while keeping tests green
+4. Repeat with frequent commits (every 30 minutes)
+
+Use `Checkpoint()` to save progress without advancing phases.
 
 ## Directory Structure
 
@@ -180,10 +194,16 @@ helper := pm.NewCLIHelper(manager)
 err := helper.CreateAndReport(ctx, pm.TypeFeature, "auth")
 
 // List and report
-err := helper.ListAndReport(ctx, pm.StatusProposed)
+err := helper.ListAndReport(ctx, pm.StatusPlanning)
 
-// Update and report
-err := helper.UpdateStatusAndReport(ctx, "feature-auth", pm.StatusInProgress)
+// Checkpoint progress
+err := helper.CheckpointAndReport(ctx, "feature-auth", "Completed user validation")
+
+// Request review
+err := helper.RequestReviewAndReport(ctx, "feature-auth")
+
+// Approve review
+err := helper.ApproveReviewAndReport(ctx, "feature-auth")
 ```
 
 ## Future Enhancements

@@ -167,8 +167,8 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	item, err := manager.CreateWorkItem(ctx, req)
 	require.NoError(t, err)
 	assert.Equal(t, "feature-auto-detect-test", item.Name)
-	assert.Equal(t, StatusProposed, item.Status)
-	assert.Equal(t, PhaseDiscovery, item.Phase)
+	assert.Equal(t, StatusPlanning, item.Status)
+	assert.Equal(t, PhasePlanning, item.Phase)
 
 	// Verify the work item was created in the correct location
 	expectedPath := filepath.Join(tempDir, "work-items", "backlog", "feature-auto-detect-test", "README.md")
@@ -180,14 +180,14 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 	assert.Len(t, items, 1)
 	assert.Equal(t, "feature-auto-detect-test", items[0].Name)
 
-	// 3. Advance phase (proposed -> discovery)
+	// 3. Advance phase (planning -> implementation)
 	err = manager.AdvancePhase(ctx, "feature-auto-detect-test")
 	require.NoError(t, err)
 
 	item, err = manager.GetWorkItem(ctx, "feature-auto-detect-test")
 	require.NoError(t, err)
-	assert.Equal(t, PhaseDiscovery, item.Phase)
-	assert.Equal(t, StatusInProgressDiscovery, item.Status)
+	assert.Equal(t, PhaseImplementation, item.Phase)
+	assert.Equal(t, StatusImplementation, item.Status)
 
 	// 4. Update progress
 	err = manager.UpdateProgress(ctx, "feature-auto-detect-test", 25)
@@ -216,35 +216,30 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// 8. Continue advancing through all phases
-	phases := []WorkPhase{PhasePlanning, PhaseExecution, PhaseCleanup}
-	statuses := []ItemStatus{StatusInProgressPlanning, StatusInProgressExecution, StatusInProgressCleanup}
+	// 8. Continue with implementation work (already in implementation phase from step 3)
+	// Update progress for implementation
+	err = manager.UpdateProgress(ctx, "feature-auto-detect-test", 50)
+	require.NoError(t, err)
 
-	for i, phase := range phases {
-		err = manager.AdvancePhase(ctx, "feature-auto-detect-test")
+	// Get and complete all tasks in implementation phase
+	tasks, err = manager.GetPhaseTasks(ctx, "feature-auto-detect-test")
+	require.NoError(t, err)
+	for j := 0; j < len(tasks); j++ {
+		err = manager.CompleteTask(ctx, "feature-auto-detect-test", j)
 		require.NoError(t, err)
-
-		item, err = manager.GetWorkItem(ctx, "feature-auto-detect-test")
-		require.NoError(t, err)
-		assert.Equal(t, phase, item.Phase)
-		assert.Equal(t, statuses[i], item.Status)
-
-		// Update progress for each phase
-		progress := 25 + i*25
-		err = manager.UpdateProgress(ctx, "feature-auto-detect-test", progress)
-		require.NoError(t, err)
-
-		// Get and complete all tasks in this phase
-		tasks, err = manager.GetPhaseTasks(ctx, "feature-auto-detect-test")
-		require.NoError(t, err)
-		for j := 0; j < len(tasks); j++ {
-			err = manager.CompleteTask(ctx, "feature-auto-detect-test", j)
-			require.NoError(t, err)
-		}
 	}
 
-	// 9. Final advance to completed (need to go through review phase)
-	err = manager.AdvancePhase(ctx, "feature-auto-detect-test")
+	// 9. Request review (moves to review phase)
+	err = manager.RequestReview(ctx, "feature-auto-detect-test")
+	require.NoError(t, err)
+
+	item, err = manager.GetWorkItem(ctx, "feature-auto-detect-test")
+	require.NoError(t, err)
+	assert.Equal(t, PhaseReview, item.Phase)
+	assert.Equal(t, StatusReview, item.Status)
+
+	// Update progress for review
+	err = manager.UpdateProgress(ctx, "feature-auto-detect-test", 75)
 	require.NoError(t, err)
 
 	// Complete review tasks if any
@@ -255,13 +250,13 @@ func TestAutoDetectFromSubdirectory(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Final advance to completed
-	err = manager.AdvancePhase(ctx, "feature-auto-detect-test")
+	// 10. Approve review (moves to completed)
+	err = manager.ApproveReview(ctx, "feature-auto-detect-test")
 	require.NoError(t, err)
 
 	item, err = manager.GetWorkItem(ctx, "feature-auto-detect-test")
 	require.NoError(t, err)
-	assert.Equal(t, PhaseCleanup, item.Phase)
+	assert.Equal(t, PhaseReview, item.Phase)
 	assert.Equal(t, StatusCompleted, item.Status)
 
 	// 10. Archive the work item

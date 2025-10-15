@@ -279,7 +279,7 @@ func (p *WorkItemParser) ParseWorkItem(name, path string) (WorkItem, error) {
 		Name:   name,
 		Path:   path,
 		Status: "UNKNOWN",
-		Phase:  PhaseDiscovery, // Default phase
+		Phase:  PhasePlanning, // Default phase
 	}
 
 	content, err := p.fs.ReadFile(path)
@@ -296,7 +296,7 @@ func (p *WorkItemParser) ParseWorkItem(name, path string) (WorkItem, error) {
 	var phaseSectionRegex = regexp.MustCompile(`##\s+(\w+)\s+Phase`)
 	var taskRegex = regexp.MustCompile(`^\s*-\s*\[([ x])\]\s*(.+)$`)
 
-	currentPhase := PhaseDiscovery // Default to discovery
+	currentPhase := PhasePlanning // Default to planning
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -332,14 +332,12 @@ func (p *WorkItemParser) ParseWorkItem(name, path string) (WorkItem, error) {
 		if matches := phaseSectionRegex.FindStringSubmatch(line); len(matches) > 1 {
 			phaseName := strings.ToLower(matches[1])
 			switch phaseName {
-			case "discovery":
-				currentPhase = PhaseDiscovery
 			case "planning":
 				currentPhase = PhasePlanning
-			case "execution":
-				currentPhase = PhaseExecution
-			case "cleanup":
-				currentPhase = PhaseCleanup
+			case "implementation":
+				currentPhase = PhaseImplementation
+			case "review":
+				currentPhase = PhaseReview
 			}
 		}
 
