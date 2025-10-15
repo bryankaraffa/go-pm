@@ -549,8 +549,7 @@ func (s *WorkItemService) Checkpoint(ctx context.Context, name string, message s
 	// }
 
 	// Log checkpoint event (could be extended to track checkpoint history)
-	_ = item    // Use item variable
-	_ = message // Use message variable
+	fmt.Printf("Checkpoint created for work item '%s': %s\n", item.Name, message)
 
 	return nil
 }
