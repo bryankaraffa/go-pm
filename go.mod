@@ -9,6 +9,7 @@ require (
 )
 
 retract (
+	v0.3.0 // v0.3.0 tag was pushed early in testing build/version fixes
 	v0.1.1 // Includes only retraction of v0.1.0
 	v0.1.0 // v0.1.0 had incorrect go project folder structure
 )
