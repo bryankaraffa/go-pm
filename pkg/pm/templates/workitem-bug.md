@@ -1,7 +1,7 @@
 # Bug: {{name}}
 
-## Status: PROPOSED
-## Phase: discovery
+## Status: PLANNING
+## Phase: planning
 ## Progress: 0%
 ## Assigned To: agent
 
@@ -24,25 +24,13 @@ What actually happens.
 
 ---
 
-## Discovery Phase
+## Planning Phase
 
 ### Goals
 - Reproduce the issue
 - Understand the root cause
 - Identify impact and severity
-
-### Tasks
-- [ ] Reproduce the bug
-- [ ] Analyze error logs/stack traces
-- [ ] Identify affected code paths
-- [ ] Determine impact and priority
-
-### Notes
-Reproduction steps, error details, and initial analysis.
-
----
-
-## Planning Phase
+- Plan the fix
 
 ### Root Cause Analysis
 Detailed analysis of why the bug occurs.
@@ -53,29 +41,27 @@ Approach for fixing the bug.
 ### Testing Plan
 How to verify the fix and prevent regression.
 
-### Acceptance Criteria
-- [ ] Bug is fixed
-- [ ] No regressions introduced
-- [ ] Test coverage added
-
 ### Tasks
+- [ ] Reproduce the bug
+- [ ] Analyze error logs/stack traces
+- [ ] Identify affected code paths
+- [ ] Determine impact and priority
 - [ ] Analyze root cause
 - [ ] Design fix approach
 - [ ] Plan testing strategy
-- [ ] Identify affected areas
 
 ### Notes
-Technical analysis and fix planning.
+Reproduction steps, technical analysis and fix planning.
 
 ---
 
-## Execution Phase
+## Implementation Phase
 
 ### Code Changes
 Files modified and changes made.
 
 ### Testing
-Test cases added and validation performed.
+Test cases added and validation performed using TDD.
 
 ### Verification
 Steps taken to verify the fix.
@@ -91,7 +77,7 @@ Implementation details and testing results.
 
 ---
 
-## Cleanup Phase
+## Review Phase
 
 ### Final Validation
 End-to-end testing and validation.

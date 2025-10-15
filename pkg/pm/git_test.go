@@ -14,7 +14,7 @@ func TestGitIntegration(t *testing.T) {
 	err := gi.CreateWorkItemBranch(TypeFeature, "user-auth")
 	assert.NoError(t, err)
 
-	err = gi.CreateWorkItemBranchForPhase(TypeFeature, "user-auth", PhaseExecution)
+	err = gi.CreateWorkItemBranchForPhase(TypeFeature, "user-auth", PhaseImplementation)
 	assert.NoError(t, err)
 }
 

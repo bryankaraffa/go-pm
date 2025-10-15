@@ -66,7 +66,7 @@ func (pt *ProgressTracker) CalculateWorkItemMetrics(workItem *WorkItem) WorkItem
 
 	// Calculate progress for each phase
 	var phaseProgress []PhaseProgress
-	for _, phase := range []WorkPhase{PhaseDiscovery, PhasePlanning, PhaseExecution, PhaseCleanup} {
+	for _, phase := range []WorkPhase{PhasePlanning, PhaseImplementation, PhaseReview} {
 		phaseProgress = append(phaseProgress, pt.CalculatePhaseProgress(workItem, phase))
 	}
 
@@ -100,18 +100,16 @@ func (pt *ProgressTracker) calculateTimeSpentInPhase(workItem *WorkItem, phase W
 	phaseIndex := 0
 
 	switch phase {
-	case PhaseDiscovery:
-		phaseIndex = 0
 	case PhasePlanning:
+		phaseIndex = 0
+	case PhaseImplementation:
 		phaseIndex = 1
-	case PhaseExecution:
+	case PhaseReview:
 		phaseIndex = 2
-	case PhaseCleanup:
-		phaseIndex = 3
 	}
 
 	// Rough estimate: assume equal time distribution across completed phases
-	// If we're in planning phase, assume we've spent time in discovery
+	// If we're in implementation phase, assume we've spent time in planning
 	estimatedPhases := phaseIndex + 1
 	if estimatedPhases > 0 {
 		return age / time.Duration(estimatedPhases)

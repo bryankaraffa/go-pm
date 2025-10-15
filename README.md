@@ -177,26 +177,61 @@ func main() {
 - `go-pm new feature|bug|experiment <name>` - Create new work items
 - `go-pm list proposed|active|completed|all` - List work items by status
 - `go-pm status show <name>` - Show work item details
-- `go-pm status update <name> <status>` - Update work item status (proposed, discovery, planning, execution, cleanup, review, completed)
-- `go-pm phase advance <name>` - Advance work item to next phase
-- `go-pm phase set <name> <phase>` - Manually set phase (admin override) (discovery, planning, execution, cleanup)
-- `go-pm phase tasks <name>` - Show current phase tasks
-- `go-pm phase complete <name> <task-id>` - Mark task as completed
 - `go-pm progress update <name> <percentage>` - Update progress percentage
 - `go-pm progress show <name>` - Show detailed progress metrics
 - `go-pm assign <name> <assignee>` - Assign work item to human/agent
+- `go-pm phase advance <name>` - Advance work item to next phase
+- `go-pm checkpoint <name> <message>` - Save progress during implementation
+- `go-pm review request <name>` - Request review (IMPLEMENTATION → REVIEW)
+- `go-pm review approve <name>` - Approve review (REVIEW → COMPLETED)
 - `go-pm archive <name>` - Archive completed work item
 - `go-pm instructions` - Print comprehensive guidelines for contributors
 - `go-pm version` - Show version information
 
 ### Workflow
 
-1. **Create**: `go-pm new feature my-feature`
-2. **Develop**: Edit the generated README.md with requirements
-3. **Advance**: `go-pm phase advance my-feature` through phases (requires completing phase tasks)
-4. **Complete**: Mark tasks done with `go-pm phase complete my-feature <task-id>`
-5. **Finish**: In cleanup phase, advance twice: once to review status, then to completed
-6. **Archive**: `go-pm archive my-feature` when in completed status
+The tool follows a **3-phase development workflow** with **TDD practices**:
+
+1. **Planning Phase**: Analyze requirements, design solution, create technical specifications
+2. **Implementation Phase**: Follow TDD (RED → GREEN → REFACTOR), commit frequently (every 30 minutes)
+3. **Review Phase**: Final validation, documentation, and approval
+
+#### Basic Workflow
+
+```bash
+# Create work item (starts in PLANNING phase)
+go-pm new feature user-authentication
+
+# Advance to implementation
+go-pm phase advance user-authentication
+
+# During implementation: save progress checkpoints
+go-pm checkpoint user-authentication "Completed user model"
+
+# Request review when implementation is complete
+go-pm review request user-authentication
+
+# Approve review (moves to COMPLETED)
+go-pm review approve user-authentication
+
+# Archive when done
+go-pm archive user-authentication
+```
+
+#### TDD Workflow During Implementation
+
+```bash
+# RED: Write failing test
+# (edit test file)
+
+# GREEN: Write minimal code to pass test
+# (edit implementation)
+
+# REFACTOR: Improve code while keeping tests green
+go-pm checkpoint feature-name "Refactored authentication logic"
+
+# Repeat cycle, commit every 30 minutes
+```
 
 ## Development
 

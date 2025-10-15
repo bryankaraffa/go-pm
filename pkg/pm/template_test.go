@@ -19,7 +19,7 @@ func TestTemplateProcessing(t *testing.T) {
 	content, err := fs.ReadFile("/tmp/test-feature.md")
 	require.NoError(t, err)
 	assert.Contains(t, string(content), "Feature: user-auth")
-	assert.Contains(t, string(content), "## Status: PROPOSED")
+	assert.Contains(t, string(content), "## Status: PLANNING")
 }
 
 func TestTemplateProcessingBug(t *testing.T) {

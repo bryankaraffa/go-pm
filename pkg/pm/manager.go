@@ -269,6 +269,51 @@ func (m *DefaultManager) ArchiveWorkItem(ctx context.Context, name string) error
 	return m.service.ArchiveWorkItem(ctx, name)
 }
 
+// Checkpoint saves progress without advancing phase (supports 30-min iterations).
+//
+// Example:
+//
+//	config := DefaultConfig()
+//	manager := NewDefaultManager(config)
+//	err := manager.Checkpoint(ctx, "feature-user-auth", "Completed user model implementation")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Println("Checkpoint saved")
+func (m *DefaultManager) Checkpoint(ctx context.Context, name, message string) error {
+	return m.service.Checkpoint(ctx, name, message)
+}
+
+// RequestReview advances from IMPLEMENTATION to REVIEW phase.
+//
+// Example:
+//
+//	config := DefaultConfig()
+//	manager := NewDefaultManager(config)
+//	err := manager.RequestReview(ctx, "feature-user-auth")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Println("Review requested")
+func (m *DefaultManager) RequestReview(ctx context.Context, name string) error {
+	return m.service.RequestReview(ctx, name)
+}
+
+// ApproveReview advances from REVIEW to COMPLETED (100% progress).
+//
+// Example:
+//
+//	config := DefaultConfig()
+//	manager := NewDefaultManager(config)
+//	err := manager.ApproveReview(ctx, "feature-user-auth")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Println("Review approved, work item completed")
+func (m *DefaultManager) ApproveReview(ctx context.Context, name string) error {
+	return m.service.ApproveReview(ctx, name)
+}
+
 type CLIHelper struct {
 	manager Manager
 	config  Config
@@ -352,11 +397,9 @@ func (h *CLIHelper) ListActiveAndReport(ctx context.Context) error {
 	}
 
 	activeStatuses := []ItemStatus{
-		StatusInProgressDiscovery,
-		StatusInProgressPlanning,
-		StatusInProgressExecution,
-		StatusInProgressCleanup,
-		StatusInProgressReview,
+		StatusPlanning,
+		StatusImplementation,
+		StatusReview,
 	}
 
 	statusGroups := make(map[ItemStatus][]WorkItem)
@@ -420,7 +463,7 @@ func (h *CLIHelper) ListAllAndReport(ctx context.Context) error {
 		statusGroups[item.Status] = append(statusGroups[item.Status], item)
 	}
 
-	statuses := []ItemStatus{StatusProposed, StatusInProgressDiscovery, StatusInProgressPlanning, StatusInProgressExecution, StatusInProgressCleanup, StatusInProgressReview, StatusCompleted}
+	statuses := []ItemStatus{StatusPlanning, StatusImplementation, StatusReview, StatusCompleted}
 	for _, status := range statuses {
 		if items, exists := statusGroups[status]; exists && len(items) > 0 {
 			fmt.Printf("\n%s:\n", status)

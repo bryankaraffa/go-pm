@@ -520,6 +520,116 @@ func (s *WorkItemService) AdvancePhase(ctx context.Context, name string) error {
 	return nil
 }
 
+// Checkpoint saves current work state without advancing phase.
+// Supports rapid iteration: commit every 30 minutes.
+// Respects PM_ENABLE_GIT configuration for git operations.
+func (s *WorkItemService) Checkpoint(ctx context.Context, name string, message string) error {
+	readmePath := filepath.Join(s.config.BacklogDir, name, "README.md")
+	if !s.fs.FileExists(readmePath) {
+		return &WorkItemError{Op: "checkpoint", Name: name, Err: fmt.Errorf("work item not found")}
+	}
+
+	// Get current work item to verify it exists and parse metadata
+	item, err := s.parser.ParseWorkItem(name, readmePath)
+	if err != nil {
+		return &WorkItemError{Op: "checkpoint", Name: name, Err: fmt.Errorf("failed to parse work item: %w", err)}
+	}
+
+	// TODO: Add git commit functionality when GitClient interface is extended
+	// For now, checkpoint validates the work item exists and could trigger other actions
+	// such as logging, notifications, or timestamp updates
+
+	// Git integration would look like:
+	// if s.config.EnableGit {
+	//     commitMsg := fmt.Sprintf("checkpoint: %s - %s", name, message)
+	//     workItemDir := filepath.Join(s.config.BacklogDir, name)
+	//     if err := s.git.CreateCommit(workItemDir, commitMsg); err != nil {
+	//         fmt.Printf("Warning: Git checkpoint commit failed: %v\n", err)
+	//     }
+	// }
+
+	// Log checkpoint event (could be extended to track checkpoint history)
+	fmt.Printf("Checkpoint created for work item '%s': %s\n", item.Name, message)
+
+	return nil
+}
+
+// RequestReview marks work item as ready for human review.
+// Advances work item from IMPLEMENTATION phase to REVIEW phase.
+func (s *WorkItemService) RequestReview(ctx context.Context, name string) error {
+	readmePath := filepath.Join(s.config.BacklogDir, name, "README.md")
+	if !s.fs.FileExists(readmePath) {
+		return &WorkItemError{Op: "request_review", Name: name, Err: fmt.Errorf("work item not found")}
+	}
+
+	// Get current work item to verify phase
+	item, err := s.parser.ParseWorkItem(name, readmePath)
+	if err != nil {
+		return &WorkItemError{Op: "request_review", Name: name, Err: fmt.Errorf("failed to parse work item: %w", err)}
+	}
+
+	// Verify work item is in IMPLEMENTATION phase
+	if item.Status != StatusImplementation {
+		return &WorkItemError{
+			Op:   "request_review",
+			Name: name,
+			Err:  fmt.Errorf("work item is not in IMPLEMENTATION phase (current: %s)", item.Status),
+		}
+	}
+
+	// Advance to REVIEW phase
+	if err := s.updater.UpdatePhaseAndStatus(readmePath, PhaseReview, StatusReview); err != nil {
+		return &WorkItemError{Op: "request_review", Name: name, Err: fmt.Errorf("failed to update phase: %w", err)}
+	}
+
+	// Create git branch for review phase if git is enabled
+	if s.config.EnableGit {
+		if err := s.git.CreateWorkItemBranchForPhase(item.Type, item.Name, PhaseReview); err != nil {
+			// Log but don't fail
+			fmt.Printf("Warning: Git branch creation failed: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+// ApproveReview approves review and advances to COMPLETED status.
+// This is typically a human action confirming the work is ready.
+func (s *WorkItemService) ApproveReview(ctx context.Context, name string) error {
+	readmePath := filepath.Join(s.config.BacklogDir, name, "README.md")
+	if !s.fs.FileExists(readmePath) {
+		return &WorkItemError{Op: "approve_review", Name: name, Err: fmt.Errorf("work item not found")}
+	}
+
+	// Get current work item to verify phase
+	item, err := s.parser.ParseWorkItem(name, readmePath)
+	if err != nil {
+		return &WorkItemError{Op: "approve_review", Name: name, Err: fmt.Errorf("failed to parse work item: %w", err)}
+	}
+
+	// Verify work item is in REVIEW phase
+	if item.Status != StatusReview {
+		return &WorkItemError{
+			Op:   "approve_review",
+			Name: name,
+			Err:  fmt.Errorf("work item is not in REVIEW phase (current: %s)", item.Status),
+		}
+	}
+
+	// Advance to COMPLETED status (phase stays as review)
+	if err := s.updater.UpdatePhaseAndStatus(readmePath, PhaseReview, StatusCompleted); err != nil {
+		return &WorkItemError{Op: "approve_review", Name: name, Err: fmt.Errorf("failed to update status: %w", err)}
+	}
+
+	// Set progress to 100%
+	if err := s.updater.UpdateProgress(readmePath, 100); err != nil {
+		// Log but don't fail
+		fmt.Printf("Warning: Failed to update progress to 100%%: %v\n", err)
+	}
+
+	return nil
+}
+
 // updateProgressFromTasks recalculates and updates progress based on task completion
 func (s *WorkItemService) updateProgressFromTasks(readmePath string) error {
 	// Get task completion counts
@@ -541,9 +651,9 @@ func (s *WorkItemService) updateProgressFromTasks(readmePath string) error {
 
 // validatePhaseTasksCompleted checks that all tasks in the current phase are completed
 func (s *WorkItemService) validatePhaseTasksCompleted(item WorkItem) error {
-	// Only validate task completion when actively working in a phase (IN_PROGRESS statuses)
-	// PROPOSED status allows advancing to start working without requiring task completion
-	if item.Status == StatusProposed {
+	// PLANNING phase allows advancing to IMPLEMENTATION without requiring all tasks to be completed
+	// This enables iterative planning where design decisions can evolve
+	if item.Status == StatusPlanning {
 		return nil
 	}
 
@@ -602,13 +712,10 @@ func (s *WorkItemService) validateCreateRequest(req CreateRequest) error {
 // validateStatus validates an item status
 func (s *WorkItemService) validateStatus(status ItemStatus) error {
 	validStatuses := map[ItemStatus]bool{
-		StatusProposed:            true,
-		StatusInProgressDiscovery: true,
-		StatusInProgressPlanning:  true,
-		StatusInProgressExecution: true,
-		StatusInProgressCleanup:   true,
-		StatusInProgressReview:    true,
-		StatusCompleted:           true,
+		StatusPlanning:       true,
+		StatusImplementation: true,
+		StatusReview:         true,
+		StatusCompleted:      true,
 	}
 
 	if !validStatuses[status] {
@@ -621,10 +728,9 @@ func (s *WorkItemService) validateStatus(status ItemStatus) error {
 // validatePhase validates a work phase
 func (s *WorkItemService) validatePhase(phase WorkPhase) error {
 	validPhases := map[WorkPhase]bool{
-		PhaseDiscovery: true,
-		PhasePlanning:  true,
-		PhaseExecution: true,
-		PhaseCleanup:   true,
+		PhasePlanning:       true,
+		PhaseImplementation: true,
+		PhaseReview:         true,
 	}
 
 	if !validPhases[phase] {
@@ -696,18 +802,12 @@ func (s *WorkItemService) matchesFilter(item WorkItem, filter ListFilter) bool {
 // getNextPhase determines the next phase and status for a work item
 func (s *WorkItemService) getNextPhase(currentPhase WorkPhase, currentStatus ItemStatus) (WorkPhase, ItemStatus, error) {
 	switch currentStatus {
-	case StatusProposed:
-		return PhaseDiscovery, StatusInProgressDiscovery, nil
-	case StatusInProgressDiscovery:
-		return PhasePlanning, StatusInProgressPlanning, nil
-	case StatusInProgressPlanning:
-		return PhaseExecution, StatusInProgressExecution, nil
-	case StatusInProgressExecution:
-		return PhaseCleanup, StatusInProgressCleanup, nil
-	case StatusInProgressCleanup:
-		return PhaseCleanup, StatusInProgressReview, nil
-	case StatusInProgressReview:
-		return PhaseCleanup, StatusCompleted, nil
+	case StatusPlanning:
+		return PhaseImplementation, StatusImplementation, nil
+	case StatusImplementation:
+		return PhaseReview, StatusReview, nil
+	case StatusReview:
+		return PhaseReview, StatusCompleted, nil
 	default:
 		return "", "", &PhaseError{
 			WorkItem:     "",

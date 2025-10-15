@@ -70,24 +70,29 @@ const (
 type ItemStatus string
 
 const (
-	StatusProposed            ItemStatus = "PROPOSED"
-	StatusInProgressDiscovery ItemStatus = "IN_PROGRESS_DISCOVERY"
-	StatusInProgressPlanning  ItemStatus = "IN_PROGRESS_PLANNING"
-	StatusInProgressExecution ItemStatus = "IN_PROGRESS_EXECUTION"
-	StatusInProgressCleanup   ItemStatus = "IN_PROGRESS_CLEANUP"
-	StatusInProgressReview    ItemStatus = "IN_PROGRESS_REVIEW"
-	StatusCompleted           ItemStatus = "COMPLETED"
+	// New 4-status model (current)
+	StatusPlanning       ItemStatus = "PLANNING"       // Initial state - discovery + design
+	StatusImplementation ItemStatus = "IMPLEMENTATION" // Build with TDD
+	StatusReview         ItemStatus = "REVIEW"         // Validation + approval
+	StatusCompleted      ItemStatus = "COMPLETED"      // Archived
 )
 
 // WorkPhase represents the current phase of work
 type WorkPhase string
 
 const (
-	PhaseDiscovery WorkPhase = "discovery"
-	PhasePlanning  WorkPhase = "planning"
-	PhaseExecution WorkPhase = "execution"
-	PhaseCleanup   WorkPhase = "cleanup"
+	PhasePlanning       WorkPhase = "planning"
+	PhaseImplementation WorkPhase = "implementation"
+	PhaseReview         WorkPhase = "review"
 )
+
+// Milestone tracks sub-phase progress and achievements
+type Milestone struct {
+	Name        string    // e.g., "Design approved", "Tests passing"
+	Description string    // Detailed description of the milestone
+	Achieved    bool      // Whether the milestone has been achieved
+	AchievedAt  time.Time // When the milestone was achieved
+}
 
 // Task represents a phase-specific task
 type Task struct {
@@ -176,6 +181,15 @@ type Manager interface {
 
 	// ArchiveWorkItem moves a completed work item to the completed directory
 	ArchiveWorkItem(ctx context.Context, name string) error
+
+	// Checkpoint saves progress without advancing phase (supports 30-min iterations)
+	Checkpoint(ctx context.Context, name, message string) error
+
+	// RequestReview advances from IMPLEMENTATION to REVIEW phase
+	RequestReview(ctx context.Context, name string) error
+
+	// ApproveReview advances from REVIEW to COMPLETED (100% progress)
+	ApproveReview(ctx context.Context, name string) error
 }
 
 // WorkItemError represents an error that occurred during a work item operation

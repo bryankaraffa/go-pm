@@ -100,19 +100,19 @@ func main() {
 	newCmd.AddCommand(createWorkItemCommand(manager, pm.TypeBug, "bug report"))
 	newCmd.AddCommand(createWorkItemCommand(manager, pm.TypeExperiment, "experiment"))
 	listCmd.AddCommand(&cobra.Command{
-		Use:   "proposed",
-		Short: "List proposed work items",
+		Use:   "planning",
+		Short: "List work items in planning phase",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			filter := pm.ListFilter{Status: pm.StatusProposed}
+			filter := pm.ListFilter{Status: pm.StatusPlanning}
 
 			items, err := manager.ListWorkItems(ctx, filter)
 			if err != nil {
 				return fmt.Errorf("failed to list work items: %w", err)
 			}
 
-			fmt.Println("Proposed work items:")
+			fmt.Println("Work items in planning:")
 			if len(items) == 0 {
-				fmt.Println("  No proposed work items found")
+				fmt.Println("  No work items in planning found")
 				return nil
 			}
 
@@ -140,11 +140,9 @@ func main() {
 			}
 
 			activeStatuses := []pm.ItemStatus{
-				pm.StatusInProgressDiscovery,
-				pm.StatusInProgressPlanning,
-				pm.StatusInProgressExecution,
-				pm.StatusInProgressCleanup,
-				pm.StatusInProgressReview,
+				pm.StatusPlanning,
+				pm.StatusImplementation,
+				pm.StatusReview,
 			}
 
 			statusGroups := make(map[pm.ItemStatus][]pm.WorkItem)
@@ -238,7 +236,7 @@ func main() {
 				statusGroups[item.Status] = append(statusGroups[item.Status], item)
 			}
 
-			statuses := []pm.ItemStatus{pm.StatusProposed, pm.StatusInProgressDiscovery, pm.StatusInProgressPlanning, pm.StatusInProgressExecution, pm.StatusInProgressCleanup, pm.StatusInProgressReview, pm.StatusCompleted}
+			statuses := []pm.ItemStatus{pm.StatusPlanning, pm.StatusImplementation, pm.StatusReview, pm.StatusCompleted}
 			for _, status := range statuses {
 				if items, exists := statusGroups[status]; exists && len(items) > 0 {
 					fmt.Printf("\n%s:\n", status)
@@ -290,22 +288,16 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var status pm.ItemStatus
 			switch strings.ToLower(args[1]) {
-			case "proposed":
-				status = pm.StatusProposed
-			case "in_progress_discovery", "discovery":
-				status = pm.StatusInProgressDiscovery
-			case "in_progress_planning", "planning":
-				status = pm.StatusInProgressPlanning
-			case "in_progress_execution", "execution":
-				status = pm.StatusInProgressExecution
-			case "in_progress_cleanup", "cleanup":
-				status = pm.StatusInProgressCleanup
-			case "in_progress_review", "review":
-				status = pm.StatusInProgressReview
+			case "planning":
+				status = pm.StatusPlanning
+			case "implementation":
+				status = pm.StatusImplementation
+			case "review":
+				status = pm.StatusReview
 			case "completed":
 				status = pm.StatusCompleted
 			default:
-				return fmt.Errorf("invalid status: %s. Valid statuses: proposed, discovery, planning, execution, cleanup, review, completed", args[1])
+				return fmt.Errorf("invalid status: %s. Valid statuses: planning, implementation, review, completed", args[1])
 			}
 			if err := manager.UpdateStatus(ctx, args[0], status); err != nil {
 				return fmt.Errorf("failed to update status: %w", err)
@@ -370,16 +362,14 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var phase pm.WorkPhase
 			switch strings.ToLower(args[1]) {
-			case "discovery":
-				phase = pm.PhaseDiscovery
 			case "planning":
 				phase = pm.PhasePlanning
-			case "execution":
-				phase = pm.PhaseExecution
-			case "cleanup":
-				phase = pm.PhaseCleanup
+			case "implementation":
+				phase = pm.PhaseImplementation
+			case "review":
+				phase = pm.PhaseReview
 			default:
-				return fmt.Errorf("invalid phase: %s. Valid phases: discovery, planning, execution, cleanup", args[1])
+				return fmt.Errorf("invalid phase: %s. Valid phases: planning, implementation, review", args[1])
 			}
 			if err := manager.SetPhase(ctx, args[0], phase); err != nil {
 				return fmt.Errorf("failed to set phase: %w", err)
@@ -505,10 +495,74 @@ func main() {
 		},
 	})
 
+	// Checkpoint command - save progress without advancing phase
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "checkpoint [name] [message]",
+		Short: "Save checkpoint progress without advancing phase (supports 30-min iterations)",
+		Long: `Save a progress checkpoint for a work item without advancing to the next phase.
+This supports rapid iteration cycles by allowing you to commit progress at any point.
+Respects PM_ENABLE_GIT configuration for git operations.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			workItemName := args[0]
+			message := args[1]
+
+			if err := manager.Checkpoint(ctx, workItemName, message); err != nil {
+				return fmt.Errorf("failed to save checkpoint: %w", err)
+			}
+
+			fmt.Printf("✅ Checkpoint saved for '%s': %s\n", workItemName, message)
+			return nil
+		},
+	})
+
+	// Review commands
+	reviewCmd := &cobra.Command{
+		Use:   "review",
+		Short: "Review workflow commands (request, approve)",
+	}
+
+	reviewCmd.AddCommand(&cobra.Command{
+		Use:   "request [name]",
+		Short: "Request review - advance from IMPLEMENTATION to REVIEW phase",
+		Long: `Request a review for a work item, advancing it from IMPLEMENTATION phase to REVIEW phase.
+Creates a review branch if PM_ENABLE_GIT is enabled.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			workItemName := args[0]
+
+			if err := manager.RequestReview(ctx, workItemName); err != nil {
+				return fmt.Errorf("failed to request review: %w", err)
+			}
+
+			fmt.Printf("✅ Review requested for '%s' - advanced to REVIEW phase\n", workItemName)
+			return nil
+		},
+	})
+
+	reviewCmd.AddCommand(&cobra.Command{
+		Use:   "approve [name]",
+		Short: "Approve review - advance from REVIEW to COMPLETED (100% progress)",
+		Long: `Approve a work item review, advancing it from REVIEW phase to COMPLETED status.
+Sets progress to 100% automatically.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			workItemName := args[0]
+
+			if err := manager.ApproveReview(ctx, workItemName); err != nil {
+				return fmt.Errorf("failed to approve review: %w", err)
+			}
+
+			fmt.Printf("✅ Review approved for '%s' - work item COMPLETED (100%%)\n", workItemName)
+			return nil
+		},
+	})
+
 	rootCmd.AddCommand(newCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(phaseCmd)
 	rootCmd.AddCommand(progressCmd)
+	rootCmd.AddCommand(reviewCmd)
 	rootCmd.AddCommand(versionCmd)
 
 	if err := rootCmd.Execute(); err != nil {

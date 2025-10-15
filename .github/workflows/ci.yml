@@ -8,9 +8,9 @@ on:
 
 jobs:
   test:
+    runs-on: ubuntu-latest
     permissions:
       id-token: write # Require write permission for OIDC token, used by codecov action
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
 
@@ -34,7 +34,7 @@ jobs:
       run: make test
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v5        
       with:
         fail_ci_if_error: true
         use_oidc: true
@@ -66,7 +66,10 @@ jobs:
         go-version-file: 'go.mod'
 
     - name: Build
-      run: make build
+      run: make build-ci
 
-    - name: Test build
-      run: ./bin/go-pm version
+    # Verify the build by checking version in one of the binaries
+    - name: Verify Build
+      run: |
+        echo "Checking version in Linux AMD64 binary..."
+        ./dist/go-pm_linux_amd64_v1/go-pm version

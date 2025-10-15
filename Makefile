@@ -11,11 +11,15 @@ LDFLAGS := -s -w -X main.version=$(VERSION) -X main.gitSHA=$(GIT_SHA) -X main.bu
 
 # Build the CLI with version info
 build:
-	goreleaser build --clean --single-target
+	go tool goreleaser build --clean --single-target
 
 # Build for development (skip validation, i.e. dirty repo check)
 build-dev:
-	goreleaser build --clean --single-target --skip=validate
+	go tool goreleaser build --clean --single-target --skip=validate
+
+# Build for CI (snapshot because often no tags)
+build-ci:
+	go tool goreleaser build --clean --single-target --snapshot
 
 # Run tests
 test:
