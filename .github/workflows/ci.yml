@@ -8,9 +8,9 @@ on:
 
 jobs:
   test:
+    runs-on: ubuntu-latest
     permissions:
       id-token: write # Require write permission for OIDC token, used by codecov action
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
 
@@ -34,7 +34,7 @@ jobs:
       run: make test
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v5        
       with:
         fail_ci_if_error: true
         use_oidc: true
