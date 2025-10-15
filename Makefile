@@ -17,6 +17,10 @@ build:
 build-dev:
 	go tool goreleaser build --clean --single-target --skip=validate
 
+# Build for CI (snapshot because often no tags)
+build-ci:
+	go tool goreleaser build --clean --single-target --snapshot
+
 # Run tests
 test:
 	go test -race -coverprofile=coverage.out -covermode=atomic ./...
