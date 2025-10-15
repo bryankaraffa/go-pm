@@ -325,7 +325,7 @@ func TestCheckpoint(t *testing.T) {
 	service := NewWorkItemService(config, fs, gitClient)
 
 	// Create a work item first
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 
 	// Create a simple work item README
 	content := `# Feature: test-feature
@@ -341,8 +341,8 @@ func TestCheckpoint(t *testing.T) {
 - [ ] Task 2
 `
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.CreateDirectory(workItemPath))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Test checkpoint without advancing phase
 	err := service.Checkpoint(context.Background(), "feature-test-feature", "Completed design document")
@@ -355,16 +355,16 @@ func TestCheckpoint(t *testing.T) {
 	assert.Equal(t, PhasePlanning, item.Phase)
 }
 
-func TestCheckpointWithGitEnabled(t *testing.T) {
+func TestCheckpointGitEnabled(t *testing.T) {
 	fs := NewMockFileSystem()
 	config := Config{BacklogDir: "/tmp/backlog", EnableGit: true}
 	gitClient := NewNoOpGitClient()
 	service := NewWorkItemService(config, fs, gitClient)
 
 	// Create a work item
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -373,7 +373,7 @@ func TestCheckpointWithGitEnabled(t *testing.T) {
 ## Progress: 50%
 ## Assigned To: agent
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Checkpoint should create git commit when enabled
 	err := service.Checkpoint(context.Background(), "feature-test-feature", "Completed unit tests")
@@ -383,16 +383,16 @@ func TestCheckpointWithGitEnabled(t *testing.T) {
 	// Note: Actual verification depends on mock implementation
 }
 
-func TestCheckpointWithGitDisabled(t *testing.T) {
+func TestCheckpointGitDisabled(t *testing.T) {
 	fs := NewMockFileSystem()
 	config := Config{BacklogDir: "/tmp/backlog", EnableGit: false}
 	gitClient := NewNoOpGitClient()
 	service := NewWorkItemService(config, fs, gitClient)
 
 	// Create a work item
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -401,7 +401,7 @@ func TestCheckpointWithGitDisabled(t *testing.T) {
 ## Progress: 50%
 ## Assigned To: agent
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Checkpoint should succeed without git operations
 	err := service.Checkpoint(context.Background(), "feature-test-feature", "Mid-phase checkpoint")
@@ -416,9 +416,9 @@ func TestRequestReview(t *testing.T) {
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
 	// Create a work item in IMPLEMENTATION phase
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -433,7 +433,7 @@ func TestRequestReview(t *testing.T) {
 - [x] Write unit tests
 - [ ] Code review
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Request review should succeed from IMPLEMENTATION phase
 	err := service.RequestReview(context.Background(), "feature-test-feature")
@@ -452,9 +452,9 @@ func TestRequestReviewFromWrongPhase(t *testing.T) {
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
 	// Create a work item in PLANNING phase
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -463,7 +463,7 @@ func TestRequestReviewFromWrongPhase(t *testing.T) {
 ## Progress: 25%
 ## Assigned To: agent
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Request review should fail from PLANNING phase
 	err := service.RequestReview(context.Background(), "feature-test-feature")
@@ -476,7 +476,7 @@ func TestRequestReviewNonExistentWorkItem(t *testing.T) {
 	config := Config{BacklogDir: "/tmp/backlog"}
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 
 	// Request review should fail for non-existent work item
 	err := service.RequestReview(context.Background(), "feature-nonexistent")
@@ -490,9 +490,9 @@ func TestApproveReview(t *testing.T) {
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
 	// Create a work item in REVIEW phase
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -507,7 +507,7 @@ func TestApproveReview(t *testing.T) {
 - [x] Documentation review
 - [ ] Human approval
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Approve review should advance to COMPLETED
 	err := service.ApproveReview(context.Background(), "feature-test-feature")
@@ -527,9 +527,9 @@ func TestApproveReviewFromWrongPhase(t *testing.T) {
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
 	// Create a work item in IMPLEMENTATION phase
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 	workItemPath := "/tmp/backlog/feature-test-feature"
-	fs.CreateDirectory(workItemPath)
+	require.NoError(t, fs.CreateDirectory(workItemPath))
 
 	content := `# Feature: test-feature
 
@@ -538,7 +538,7 @@ func TestApproveReviewFromWrongPhase(t *testing.T) {
 ## Progress: 75%
 ## Assigned To: agent
 `
-	fs.WriteFile(workItemPath+"/README.md", []byte(content))
+	require.NoError(t, fs.WriteFile(workItemPath+"/README.md", []byte(content)))
 
 	// Approve review should fail from IMPLEMENTATION phase
 	err := service.ApproveReview(context.Background(), "feature-test-feature")
@@ -551,7 +551,7 @@ func TestApproveReviewNonExistentWorkItem(t *testing.T) {
 	config := Config{BacklogDir: "/tmp/backlog"}
 	service := NewWorkItemService(config, fs, NewNoOpGitClient())
 
-	fs.CreateDirectory(config.BacklogDir)
+	require.NoError(t, fs.CreateDirectory(config.BacklogDir))
 
 	// Approve review should fail for non-existent work item
 	err := service.ApproveReview(context.Background(), "feature-nonexistent")
